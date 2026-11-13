@@ -1,0 +1,84 @@
+{
+  "team": "Real Madrid",
+  "season": "2026-2027",
+  "formation": "4-3-3",
+  "players": [
+    {
+      "name": "Thibaut Courtois",
+      "nameKr": "티보 쿠르투아",
+      "position": "GK",
+      "seasonAverage": 7.2,
+      "last5Ratings": null
+    },
+    {
+      "name": "Trent Alexander-Arnold",
+      "nameKr": "트렌트 알렉산더아놀드",
+      "position": "RB",
+      "seasonAverage": 7.29,
+      "last5Ratings": null
+    },
+    {
+      "name": "Ibrahima Konate",
+      "nameKr": "이브라히마 코나테",
+      "position": "CB",
+      "seasonAverage": 7.05,
+      "last5Ratings": null
+    },
+    {
+      "name": "Dean Huijsen",
+      "nameKr": "딘 하위선",
+      "position": "CB",
+      "seasonAverage": 7.24,
+      "last5Ratings": null
+    },
+    {
+      "name": "Alvaro Carreras",
+      "nameKr": "알바로 카레라스",
+      "position": "LB",
+      "seasonAverage": null,
+      "last5Ratings": null
+    },
+    {
+      "name": "Aurelien Tchouameni",
+      "nameKr": "오렐리앵 추아메니",
+      "position": "CDM",
+      "seasonAverage": 7.37,
+      "last5Ratings": null
+    },
+    {
+      "name": "Jude Bellingham",
+      "nameKr": "주드 벨링엄",
+      "position": "CM",
+      "seasonAverage": 7.98,
+      "last5Ratings": null
+    },
+    {
+      "name": "Federico Valverde",
+      "nameKr": "페데리코 발베르데",
+      "position": "CM",
+      "seasonAverage": 7.39,
+      "last5Ratings": null
+    },
+    {
+      "name": "Arda Guler",
+      "nameKr": "아르다 귈러",
+      "position": "RW",
+      "seasonAverage": 7.92,
+      "last5Ratings": null
+    },
+    {
+      "name": "Vinicius Junior",
+      "nameKr": "비니시우스 주니오르",
+      "position": "LW",
+      "seasonAverage": 7.3,
+      "last5Ratings": null
+    },
+    {
+      "name": "Kylian Mbappe",
+      "nameKr": "킬리안 음바페",
+      "position": "ST",
+      "seasonAverage": 8.34,
+      "last5Ratings": null
+    }
+  ]
+}
