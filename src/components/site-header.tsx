@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { useAuth } from "@/components/auth-provider";
 
 const links = [
   { href: "/", label: "홈", id: "home" },
@@ -18,7 +17,6 @@ function Crest() {
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { user, nickname, signOut, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const active = pathname === "/" ? "home" : pathname.startsWith("/matches") ? "matches" : "community";
 
@@ -36,13 +34,7 @@ export function SiteHeader() {
                 {link.label}
               </Link>
             ))}
-            <Link className="mobile-auth-link" href="/auth" onClick={() => setMenuOpen(false)}>
-              {loading ? "확인 중" : user ? `${nickname ?? "팬"} 계정` : "로그인 / 가입"}
-            </Link>
           </nav>
-          <div className="header-account">
-            {user ? <button type="button" onClick={() => void signOut()}>{nickname ?? "팬"} · 로그아웃</button> : <Link href="/auth">로그인</Link>}
-          </div>
           <button className="menu-toggle" type="button" aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"} aria-expanded={menuOpen} aria-controls="main-navigation" onClick={() => setMenuOpen((open) => !open)}>
             <span aria-hidden="true">{menuOpen ? "×" : "☰"}</span>
           </button>

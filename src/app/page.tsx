@@ -3,22 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/components/auth-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { formatRating, formation, players, season } from "@/lib/data";
 import { competitionLabel, koreanDate, koreanKickoff, teamDisplayName, type FixturesResponse, type FootballTeam } from "@/lib/football-data";
-
-type RatingSummary = { player_id: string; player_name: string; average_score: number; rating_count: number };
-type LoungePost = { id: string; title: string; board: string; created_at: string; author_id: string; nickname: string; commentCount: number };
+import { communityBoards, communityExamples } from "@/lib/community-examples";
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true as const };
   if (name === "calendar") return <svg {...common}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></svg>;
-  if (name === "arrow") return <svg {...common}><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
-  if (name === "star") return <svg {...common} fill="currentColor" stroke="none"><path d="m12 2.8 2.83 5.73 6.32.92-4.57 4.45 1.08 6.29L12 17.22l-5.66 2.97 1.08-6.29L2.85 9.45l6.32-.92L12 2.8Z" /></svg>;
-  if (name === "comments") return <svg {...common}><path d="M21 11.5a7.5 7.5 0 0 1-7.5 7.5H7l-4 2v-5.5A7.5 7.5 0 1 1 21 11.5Z" /><path d="M8 11h8M8 14h5" /></svg>;
-  return <svg {...common}><path d="M12 3v18M3 12h18" /></svg>;
+  return <svg {...common}><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
 }
 
 function CrestMark() {
@@ -30,21 +24,10 @@ function TeamMark({ team }: { team: FootballTeam }) {
   return <span className="opponent-badge">{team.tla ?? team.shortName?.slice(0, 1) ?? team.name.slice(0, 1)}</span>;
 }
 
-const boardLabels: Record<string, string> = {
-  match_discussion: "경기 토론",
-  tactics_players: "전술·선수",
-  free_chat: "자유·잡담",
-};
-
 function HomeContent() {
-  const { supabase } = useAuth();
   const [fixturesData, setFixturesData] = useState<FixturesResponse>({ matches: [], recentResults: [] });
   const [fixturesLoading, setFixturesLoading] = useState(true);
   const [fixturesError, setFixturesError] = useState<string | null>(null);
-  const [recentRatings, setRecentRatings] = useState<RatingSummary[]>([]);
-  const [ratingsLoading, setRatingsLoading] = useState(false);
-  const [loungePosts, setLoungePosts] = useState<LoungePost[]>([]);
-  const [loungeLoading, setLoungeLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,13 +35,13 @@ function HomeContent() {
       try {
         const response = await fetch("/api/fixtures");
         const payload = (await response.json()) as FixturesResponse & { error?: string };
-        if (!response.ok) throw new Error(payload.error ?? "경기 일정을 불러오지 못했습니다.");
+        if (!response.ok) throw new Error("경기 일정을 불러올 수 없습니다.");
         if (!cancelled) {
           setFixturesData({ matches: payload.matches ?? [], recentResults: payload.recentResults ?? [] });
           setFixturesError(null);
         }
-      } catch (error) {
-        if (!cancelled) setFixturesError(error instanceof Error ? error.message : "경기 정보를 불러오지 못했습니다.");
+      } catch {
+        if (!cancelled) setFixturesError("경기 일정을 불러올 수 없습니다.");
       } finally {
         if (!cancelled) setFixturesLoading(false);
       }
@@ -67,63 +50,7 @@ function HomeContent() {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    const client = supabase;
-    if (!client) {
-      setLoungeLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLoungeLoading(true);
-    async function loadPosts(db: NonNullable<typeof supabase>) {
-      const { data, error } = await db
-        .from("posts")
-        .select("id,title,board,created_at,author_id")
-        .eq("status", "visible")
-        .order("created_at", { ascending: false })
-        .limit(4);
-      if (error || !data?.length) {
-        if (!cancelled) setLoungePosts([]);
-        return;
-      }
-      const postIds = data.map((post) => post.id);
-      const authorIds = [...new Set(data.map((post) => post.author_id))];
-      const [{ data: profiles }, { data: comments }] = await Promise.all([
-        db.from("profiles").select("id,nickname").in("id", authorIds),
-        db.from("comments").select("post_id").eq("status", "visible").in("post_id", postIds),
-      ]);
-      const nicknames = new Map((profiles ?? []).map((profile) => [profile.id, profile.nickname]));
-      const counts = new Map<string, number>();
-      (comments ?? []).forEach((comment) => counts.set(comment.post_id, (counts.get(comment.post_id) ?? 0) + 1));
-      if (!cancelled) setLoungePosts(data.map((post) => ({
-        ...post,
-        nickname: nicknames.get(post.author_id) ?? "마드리디스타",
-        commentCount: counts.get(post.id) ?? 0,
-      })));
-    }
-    void loadPosts(client).finally(() => { if (!cancelled) setLoungeLoading(false); });
-    return () => { cancelled = true; };
-  }, [supabase]);
-
   const latestResult = fixturesData.recentResults[0] ?? null;
-  const latestResultId = latestResult?.id;
-  useEffect(() => {
-    const client = supabase;
-    if (!client || !latestResultId) {
-      setRecentRatings([]);
-      return;
-    }
-    let cancelled = false;
-    setRatingsLoading(true);
-    async function loadRatings(db: NonNullable<typeof supabase>, matchId: string) {
-      const { data, error } = await db.rpc("match_rating_summary", { p_match_id: matchId });
-      if (!cancelled) setRecentRatings(error ? [] : ((data ?? []) as RatingSummary[]).slice(0, 3));
-      if (!cancelled) setRatingsLoading(false);
-    }
-    void loadRatings(client, latestResultId);
-    return () => { cancelled = true; };
-  }, [supabase, latestResultId]);
-
   const nextFixture = fixturesData.matches[0] ?? null;
   const bestPlayers = [...players].sort((a, b) => (b.seasonAverage ?? 0) - (a.seasonAverage ?? 0)).slice(0, 3);
   const previewGroups = [
@@ -148,8 +75,8 @@ function HomeContent() {
                 <h1>Hala<br /><em>Madrid.</em></h1>
                 <p className="hero-description">다음 경기부터 베스트 11까지,<br />마드리디스타의 시선으로 함께합니다.</p>
                 <div className="hero-actions">
-                  <Link className="hero-button" href="/matches">매치센터 보기 <Icon name="arrow" size={17} /></Link>
-                  <Link className="hero-secondary" href="/community">팬라운지 입장</Link>
+                  <Link className="hero-button" href="/matches">다음 경기 보기 <Icon name="arrow" size={17} /></Link>
+                  <Link className="hero-secondary" href="/community">팬라운지 둘러보기</Link>
                 </div>
               </div>
             </div>
@@ -219,58 +146,6 @@ function HomeContent() {
           </div>
         </section>
 
-        <section className="home-community-section">
-          <div className="page-width home-community-grid">
-            <section className="home-ratings-panel">
-              <div className="home-section-heading compact">
-                <div><div className="eyebrow"><span /> LAST MATCH · FAN VOTES</div><h2>팬 평점 <em>TOP 3</em></h2></div>
-                <Link className="text-link" href="/matches">평점 보기 <span aria-hidden="true">→</span></Link>
-              </div>
-              {!supabase ? (
-                <div className="home-empty compact-empty">팬 평점은 Supabase 연결 후 표시됩니다.</div>
-              ) : ratingsLoading ? (
-                <div className="home-empty compact-empty">최근 팬 평점을 불러오는 중입니다.</div>
-              ) : recentRatings.length === 0 ? (
-                <div className="home-empty compact-empty">최근 경기의 팬 평점이 아직 없습니다.</div>
-              ) : (
-                <ol className="home-rating-list">
-                  {recentRatings.map((rating, index) => (
-                    <li key={rating.player_id}>
-                      <span className="top-rank">0{index + 1}</span>
-                      <span><b>{rating.player_name}</b><small>평가 {rating.rating_count}명</small></span>
-                      <strong>{Number(rating.average_score).toFixed(2)}</strong>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
-
-            <section className="home-lounge-panel">
-              <div className="home-section-heading compact">
-                <div><div className="eyebrow"><span /> FROM THE FAN LOUNGE</div><h2>라운지 <em>최신 글</em></h2></div>
-                <Link className="text-link" href="/community">팬라운지 <span aria-hidden="true">→</span></Link>
-              </div>
-              {!supabase ? (
-                <div className="home-empty compact-empty">팬라운지는 Supabase 연결 후 열립니다.</div>
-              ) : loungeLoading ? (
-                <div className="home-empty compact-empty">최신 글을 불러오는 중입니다.</div>
-              ) : loungePosts.length === 0 ? (
-                <div className="home-empty compact-empty">아직 게시글이 없습니다. 팬라운지에서 첫 이야기를 시작해 보세요.</div>
-              ) : (
-                <div className="home-post-list">
-                  {loungePosts.map((post) => (
-                    <Link className="home-post-row" href={`/community/${post.id}`} key={post.id}>
-                      <span className="board-label">{boardLabels[post.board] ?? "팬라운지"}</span>
-                      <b>{post.title}</b>
-                      <span className="home-post-meta">{post.nickname} · 댓글 {post.commentCount}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
-        </section>
-
         <section className="home-xi-section section-pad">
           <div className="page-width">
             <div className="home-section-heading">
@@ -299,11 +174,31 @@ function HomeContent() {
           </div>
         </section>
 
+        <section className="home-community-section">
+          <div className="page-width home-community-grid">
+            <section className="home-lounge-panel">
+              <div className="home-section-heading compact">
+                <div><div className="eyebrow"><span /> FROM THE FAN LOUNGE</div><h2>팬라운지 <em>미리보기</em></h2></div>
+                <Link className="text-link" href="/community">팬라운지 <span aria-hidden="true">→</span></Link>
+              </div>
+              <div className="home-post-list">
+                {communityExamples.filter((post) => post.board === "free_chat").slice(0, 2).map((post) => (
+                  <Link className="home-post-row" href={`/community/${post.id}`} key={post.id}>
+                    <span className="board-label">예시 게시글 · {communityBoards.find((item) => item.id === post.board)?.label}</span>
+                    <b>{post.title}</b>
+                    <span className="home-post-meta">둘러보기용 예시</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          </div>
+        </section>
+
         <section className="about-section" id="about">
           <div className="page-width about-inner">
-            <div className="about-mark"><Icon name="star" size={22} /></div>
-            <div><div className="eyebrow light"><span /> A FAN-POWERED SPACE</div><h2>우리의 목소리로<br /><em>만드는 평점.</em></h2></div>
-            <p>경기 종료 후 출전 선수에게 1~10점을 남겨주세요. 같은 경기·선수의 점수는 다시 입력하면 수정되고, 시즌 평균과 팬 평균은 따로 표시합니다.</p>
+            <div className="about-mark"><Icon name="calendar" size={22} /></div>
+            <div><div className="eyebrow light"><span /> YOUR MATCH NOTE</div><h2>나만의 경기<br /><em>평점을 기록.</em></h2></div>
+            <p>경기 종료 후 출전 명단이 확인된 선수에게 1~10점의 내 평점을 남길 수 있습니다. 평점은 이 브라우저에만 저장되며 다른 팬과 공유되지 않습니다.</p>
             <Link className="about-button" href="/matches">매치센터에서 참여 <Icon name="arrow" size={16} /></Link>
           </div>
         </section>

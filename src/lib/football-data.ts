@@ -35,7 +35,6 @@ export type MatchDetails = FootballMatch & {
     assist?: { name: string } | null;
   }>;
   appearedPlayers: AppearedPlayer[];
-  participantsSynced: boolean;
   ratingEnabled: boolean;
 };
 

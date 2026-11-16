@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { AuthProvider } from "@/components/auth-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Madridista | 레알마드리드 팬페이지",
-  description: "팬이 함께 만드는 레알마드리드 경기와 선수 평점",
+  description: "레알마드리드 경기 일정과 베스트 11, 브라우저 전용 내 평점",
 };
 
 export default function RootLayout({
@@ -14,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body><AuthProvider>{children}</AuthProvider></body>
+      <body>{children}</body>
     </html>
   );
 }

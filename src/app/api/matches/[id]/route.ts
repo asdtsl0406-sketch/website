@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
 type ProviderPlayer = {
@@ -70,24 +69,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }
 
     const appearedPlayers = [...participants.values()];
-    let participantsSynced = false;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (match.status === "FINISHED" && appearedPlayers.length > 0 && supabaseUrl && serviceRoleKey) {
-      const admin = createClient(supabaseUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
-      const rows = appearedPlayers.map((player) => ({
-        match_id: String(match.id),
-        player_id: player.playerId,
-        player_name: player.playerName,
-        team_id: player.teamId,
-        match_date: match.utcDate,
-      }));
-      const { error } = await admin.from("match_participants").upsert(rows, { onConflict: "match_id,player_id" });
-      participantsSynced = !error;
-    }
 
     return NextResponse.json({
       id: String(match.id),
@@ -102,8 +83,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       winner: match.score?.winner ?? null,
       goals: match.goals ?? [],
       appearedPlayers,
-      participantsSynced,
-      ratingEnabled: match.status === "FINISHED" && appearedPlayers.length > 0 && participantsSynced,
+      ratingEnabled: match.status === "FINISHED" && appearedPlayers.length > 0,
     });
   } catch {
     return NextResponse.json({ error: "경기 상세 서버에 연결할 수 없습니다." }, { status: 502 });

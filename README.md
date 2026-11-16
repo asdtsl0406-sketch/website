@@ -13,29 +13,24 @@ npm run dev
 
 브라우저에서 [http://localhost:3000](http://localhost:3000)을 엽니다.
 
-## 환경변수 및 Supabase 설정
+## 경기 일정 API (선택)
 
-`.env.example`을 참고해 루트 `.env.local`을 만들고 실제 값을 입력합니다. `.env.local`은 Git에서 제외됩니다.
+football-data.org 키가 있으면 루트 `.env.local`에 설정합니다. 키가 없어도 앱과 빌드는 실행되며, 경기 데이터 영역에는 `경기 일정을 불러올 수 없습니다`라고 표시됩니다.
 
 ```env
-FOOTBALL_DATA_API_KEY=...
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
+FOOTBALL_DATA_API_KEY=your_api_key_here
 ```
-
-Supabase SQL Editor에서 [`supabase/schema.sql`](supabase/schema.sql)을 실행합니다. Auth에서 이메일 가입을 활성화하고, 운영자 계정은 가입 후 SQL 파일 마지막 주석의 예시대로 `site_admins`에 추가하세요. `SUPABASE_SERVICE_ROLE_KEY`는 서버 전용 비밀키입니다. 브라우저 변수명으로 바꾸거나 저장소에 커밋하지 마세요.
-
-Vercel에서는 **Project Settings → Environment Variables**에 같은 변수를 설정한 뒤 새 배포를 생성합니다.
 
 ## 데이터와 기능 범위
 
 - 경기 일정과 결과는 서버 API에서 football-data.org로부터 가져옵니다. 표시 대회는 API 계정 플랜의 제공 범위에 따르며 Copa del Rey는 빠질 수 있습니다.
-- 경기 평점은 종료된 경기에서 실제 출전 명단을 API가 제공한 경우에만 활성화합니다. 명단이 없거나 Supabase 서버 설정이 없으면 평점 입력을 열지 않습니다.
-- 계정·경기·선수당 평점은 DB unique key로 하나만 저장되며 재평가 시 기존 점수를 수정합니다. 팬 평균은 경기별로 집계되고 시즌 평균과 별도로 표시합니다.
-- 게시글과 댓글은 공개 열람, 작성은 로그인 필수이며 수정·삭제는 작성자에게만 허용합니다. 신고와 운영자 숨김은 RLS로 제한합니다.
-- 비공개 1:1 쪽지는 첫 배포 범위에 포함하지 않습니다.
+- 브라우저 평점은 종료된 경기에서 실제 출전 명단이 제공될 때만 입력할 수 있고, `localStorage`에 이 브라우저 전용으로 저장됩니다. 공용 평균으로 집계하지 않습니다.
+- 팬라운지 글은 둘러보기용 예시이며 실제 팬 활동이 아닙니다. 로그인, 글쓰기, 댓글, 쪽지는 포함하지 않습니다.
 - 이 사이트는 레알마드리드 CF와 제휴되지 않은 비공식 팬 프로젝트입니다.
+
+## Vercel 배포
+
+GitHub에 푸시한 뒤 Vercel에서 이 Next.js 저장소를 가져오면 배포할 수 있습니다. 일정 데이터를 표시하려면 Vercel Project Settings → Environment Variables에 `FOOTBALL_DATA_API_KEY`를 추가하세요. 키가 없어도 빌드와 페이지는 동작합니다.
 
 ## 경기장 사진 출처
 

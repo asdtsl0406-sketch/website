@@ -43,10 +43,10 @@ export default function MatchesPage() {
     fetch("/api/fixtures")
       .then(async (response) => {
         const payload = (await response.json()) as FixturesResponse & { error?: string };
-        if (!response.ok) throw new Error(payload.error ?? "경기 정보를 불러오지 못했습니다.");
+        if (!response.ok) throw new Error("경기 일정을 불러올 수 없습니다.");
         if (active) setData({ matches: payload.matches ?? [], recentResults: payload.recentResults ?? [] });
       })
-      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "경기 정보를 불러오지 못했습니다."); })
+      .catch(() => { if (active) setError("경기 일정을 불러올 수 없습니다."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
@@ -75,7 +75,7 @@ export default function MatchesPage() {
           </section>
 
           <section className="match-list-section results-list-section" aria-labelledby="results-title">
-            <div className="match-list-heading"><div><div className="eyebrow"><span /> FINAL WHISTLE</div><h2 id="results-title">최근 결과</h2></div><span className="results-caption">경기 상세에서 선수 평점에 참여</span></div>
+            <div className="match-list-heading"><div><div className="eyebrow"><span /> FINAL WHISTLE</div><h2 id="results-title">최근 결과</h2></div><span className="results-caption">경기 상세에서 내 평점 · 이 브라우저에만 저장</span></div>
             {loading ? <div className="page-state">결과를 불러오는 중입니다.</div> : error ? <div className="page-state error">{error}</div> : data.recentResults.length ? data.recentResults.map((match) => <MatchRow key={match.id} match={match} result />) : <div className="page-state">최근 경기 결과가 아직 없습니다.</div>}
           </section>
 

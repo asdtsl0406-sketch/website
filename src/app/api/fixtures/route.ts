@@ -19,7 +19,7 @@ export async function GET() {
   const token = process.env.FOOTBALL_DATA_API_KEY?.trim();
   if (!token) {
     return NextResponse.json(
-      { error: "FOOTBALL_DATA_API_KEY를 .env.local 또는 배포 환경변수에 설정하세요." },
+      { error: "경기 일정을 불러올 수 없습니다." },
       { status: 503 },
     );
   }
@@ -39,12 +39,7 @@ export async function GET() {
     });
 
     if (!response.ok) {
-      const error = response.status === 400 || response.status === 403
-        ? "API 키가 유효하지 않거나 해당 대회가 현재 플랜에 포함되지 않습니다."
-        : response.status === 429
-          ? "football-data.org 요청 한도에 도달했습니다. 잠시 후 다시 시도하세요."
-          : "football-data.org에서 경기 일정을 가져오지 못했습니다.";
-      return NextResponse.json({ error }, { status: 502 });
+      return NextResponse.json({ error: "경기 일정을 불러올 수 없습니다." }, { status: 502 });
     }
 
     const payload = (await response.json()) as { matches?: Match[] };
@@ -76,7 +71,7 @@ export async function GET() {
     return NextResponse.json({ matches, recentResults, source: "football-data.org" });
   } catch {
     return NextResponse.json(
-      { error: "일정 서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요." },
+      { error: "경기 일정을 불러올 수 없습니다." },
       { status: 502 },
     );
   }
