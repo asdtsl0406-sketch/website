@@ -2,9 +2,65 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { average, fixtures, formatRating, formation, players, season } from "@/lib/data";
+import { average, formatRating, formation, players, season } from "@/lib/data";
 
 type VoteMap = Record<string, number[]>;
+type FixtureTeam = { id: number; name: string; shortName?: string; tla?: string };
+type Fixture = {
+  id: string;
+  utcDate: string;
+  status: "SCHEDULED" | "TIMED";
+  competitionCode: string;
+  competitionName: string;
+  venue: string | null;
+  homeTeam: FixtureTeam;
+  awayTeam: FixtureTeam;
+};
+
+function formatFixtureDate(utcDate: string) {
+  const date = new Date(utcDate);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Seoul",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const month = parts.find((part) => part.type === "month")?.value ?? "--";
+  const day = parts.find((part) => part.type === "day")?.value ?? "--";
+  const weekday = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    weekday: "long",
+  }).format(date);
+  return { dateLabel: `${month}.${day}`, weekday };
+}
+
+function formatKickoff(fixture: Fixture) {
+  if (fixture.status !== "TIMED") return "시간 미정";
+  const time = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(fixture.utcDate));
+  return `${time} KST`;
+}
+
+function getCompetitionLabel(fixture: Fixture) {
+  const labels: Record<string, string> = {
+    PD: "LALIGA",
+    CL: "CHAMPIONS LEAGUE",
+    CDR: "COPA DEL REY",
+  };
+  return labels[fixture.competitionCode] ?? fixture.competitionName.toUpperCase();
+}
+
+function TeamMark({ team }: { team: FixtureTeam }) {
+  if (team.id === 86) return <CrestMark />;
+  return <span className="opponent-badge">{team.tla ?? team.shortName?.slice(0, 1) ?? team.name.slice(0, 1)}</span>;
+}
+
+function teamDisplayName(team: FixtureTeam) {
+  return team.id === 86 ? "REAL MADRID" : (team.shortName ?? team.name).toUpperCase();
+}
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const common = {
@@ -57,6 +113,13 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
       </svg>
     );
   }
+  if (name === "menu") {
+    return (
+      <svg {...common}>
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </svg>
+    );
+  }
   return (
     <svg {...common}>
       <path d="M12 3v18M3 12h18" />
@@ -67,16 +130,21 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
 function CrestMark() {
   return (
     <span className="crest-mark" aria-hidden="true">
-      <span>RM</span>
+      <Image src="/images/real-madrid-crest.svg" alt="" fill sizes="42px" />
     </span>
   );
 }
 
 export default function Home() {
   const [votes, setVotes] = useState<VoteMap>({});
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [fixturesLoading, setFixturesLoading] = useState(true);
+  const [fixturesError, setFixturesError] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
+  const [activeSection, setActiveSection] = useState("home");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("madridista-fan-votes");
@@ -95,7 +163,50 @@ export default function Home() {
     }
   }, []);
 
+  useEffect(() => {
+    const sections = ["home", "schedule", "lineup", "about"]
+      .map((id) => document.getElementById(id))
+      .filter((section): section is HTMLElement => section !== null);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) setActiveSection(visible.target.id);
+      },
+      { rootMargin: "-96px 0px -58% 0px", threshold: [0, 0.15, 0.4] },
+    );
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFixtures() {
+      try {
+        const response = await fetch("/api/fixtures");
+        const payload = (await response.json()) as { matches?: Fixture[]; error?: string };
+        if (!response.ok) throw new Error(payload.error ?? "경기 일정을 불러오지 못했습니다.");
+        if (!cancelled) {
+          setFixtures(payload.matches ?? []);
+          setFixturesError(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setFixturesError(error instanceof Error ? error.message : "경기 일정을 불러오지 못했습니다.");
+        }
+      } finally {
+        if (!cancelled) setFixturesLoading(false);
+      }
+    }
+
+    void loadFixtures();
+    return () => { cancelled = true; };
+  }, []);
+
   const selected = players.find((player) => player.id === selectedPlayer) ?? null;
+  const nextFixture = fixtures[0] ?? null;
   const topRated = useMemo(
     () =>
       players
@@ -123,84 +234,137 @@ export default function Home() {
     return entries.length ? average(entries) : null;
   }
 
+  const navItems = [
+    { id: "home", label: "홈" },
+    { id: "lineup", label: "베스트 11" },
+    { id: "schedule", label: "경기 일정" },
+    { id: "about", label: "팬 평점 안내" },
+  ];
+
   return (
     <main>
-      <div className="announcement">
-        <span className="announcement-dot" />
-        MADRIDISMO · 팬이 함께 만드는 레알마드리드 이야기
-      </div>
+      <div className="announcement">한국 마드리디스타를 위한 비공식 팬 매치데이 매거진</div>
 
       <header className="site-header">
-        <a className="brand" href="#home" aria-label="Madridista 홈">
-          <CrestMark />
-          <span className="brand-copy">
-            <strong>MADRIDISTA</strong>
-            <small>FAN CLUB · KOREA</small>
-          </span>
-        </a>
-        <nav className="main-nav" aria-label="메인 메뉴">
-          <a className="active" href="#home">홈</a>
-          <a href="#lineup">베스트 11</a>
-          <a href="#schedule">경기 일정</a>
-          <a href="#about">팬 평점 안내</a>
-        </nav>
-        <a className="header-cta" href="#lineup">
-          매치데이 보기 <Icon name="arrow" size={16} />
-        </a>
+        <div className="site-header-inner page-width">
+          <a className="brand" href="#home" aria-label="Madridista 홈" onClick={() => setActiveSection("home")}>
+            <CrestMark />
+            <span className="brand-copy"><strong>MADRIDISTA</strong><small>FAN CLUB · KOREA</small></span>
+          </a>
+          <nav className={`main-nav ${mobileMenuOpen ? "is-open" : ""}`} id="main-navigation" aria-label="메인 메뉴">
+            {navItems.map((item) => (
+              <a
+                className={activeSection === item.id ? "active" : ""}
+                href={`#${item.id}`}
+                key={item.id}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <button
+            className="menu-toggle"
+            type="button"
+            aria-label={mobileMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="main-navigation"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            <Icon name={mobileMenuOpen ? "close" : "menu"} size={21} />
+          </button>
+        </div>
       </header>
 
       <section className="hero" id="home">
-        <Image
-          src="/images/bernabeu-hero.jpg"
-          alt="팬들로 가득 찬 산티아고 베르나베우 경기장 내부"
-          fill
-          priority
-          sizes="100vw"
-          className="hero-image"
-        />
-        <div className="hero-shade" />
-        <div className="hero-inner page-width">
-          <div className="hero-copy">
-            <div className="eyebrow light"><span /> THE HOME OF MADRIDISMO</div>
-            <p className="hero-kicker">함께 외치는 그 이름</p>
-            <h1>Hala<br /><em>Madrid.</em></h1>
-            <p className="hero-description">
-              승리의 순간도, 다시 일어서는 순간도.<br />
-              한국의 마드리디스타와 함께합니다.
-            </p>
-            <a className="hero-button" href="#lineup">
-              오늘의 베스트 11 <Icon name="arrow" size={17} />
-            </a>
+        <div className="hero-visual">
+          <Image
+            src="/images/bernabeu-hero.jpg"
+            alt="팬들로 가득 찬 산티아고 베르나베우 경기장 내부"
+            fill
+            priority
+            sizes="100vw"
+            className="hero-image"
+          />
+          <div className="hero-shade" />
+          <div className="hero-inner page-width">
+            <div className="hero-copy">
+              <div className="eyebrow light"><span /> MADRIDISTA · KOREA</div>
+              <p className="hero-kicker">한국 팬을 위한 비공식 팬페이지</p>
+              <h1>Hala<br /><em>Madrid.</em></h1>
+              <p className="hero-description">
+                다음 경기부터 베스트 11까지,<br />
+                마드리디스타의 시선으로 함께합니다.
+              </p>
+              <div className="hero-actions">
+                <a className="hero-button" href="#schedule">다음 경기 보기 <Icon name="arrow" size={17} /></a>
+                <a className="hero-secondary" href="#lineup">베스트 11 보기</a>
+              </div>
+            </div>
           </div>
+          <div className="image-credit">
+            Photo: Zoser · cropped · <a href="https://commons.wikimedia.org/wiki/File:Estadio_Santiago_Bernab%C3%A9u_Madrid.jpg" target="_blank" rel="noreferrer">CC BY 4.0</a>
+          </div>
+        </div>
+
+        <div className="hero-match-wrap page-width">
           <div className="hero-match-card">
             <div className="match-card-top">
-              <span className="live-label"><i /> NEXT MATCH</span>
-              <span className="demo-chip">예시 일정</span>
+              <span className="live-label"><i /> {nextFixture ? getCompetitionLabel(nextFixture) : fixturesLoading ? "일정 조회 중" : "다음 경기"}</span>
+              <span className="match-card-source">{nextFixture ? "NEXT MATCH" : fixturesError ? "API 연결 확인" : "MADRIDISTA"}</span>
             </div>
-            <div className="hero-fixture">
-              <div className="hero-team home-team"><CrestMark /><span>REAL<br />MADRID</span></div>
-              <span className="versus">VS</span>
-              <div className="hero-team away-team"><span className="opponent-badge">A</span><span>ATHLETIC<br />CLUB</span></div>
-            </div>
-            <div className="match-card-divider" />
-            <div className="match-card-bottom">
-              <span><Icon name="calendar" size={16} /> 2026.11.22 · 22:00 KST</span>
-              <span>산티아고 베르나베우</span>
-            </div>
+            {nextFixture ? (
+              <>
+                <div className="hero-fixture">
+                  <div className="hero-team"><TeamMark team={nextFixture.homeTeam} /><span>{teamDisplayName(nextFixture.homeTeam)}</span></div>
+                  <span className="versus">VS</span>
+                  <div className="hero-team"><TeamMark team={nextFixture.awayTeam} /><span>{teamDisplayName(nextFixture.awayTeam)}</span></div>
+                </div>
+                <div className="match-card-divider" />
+                <div className="match-card-bottom">
+                  <span><Icon name="calendar" size={16} /> {formatFixtureDate(nextFixture.utcDate).dateLabel} · {formatKickoff(nextFixture)}</span>
+                  <span>{nextFixture.venue ?? (nextFixture.homeTeam.id === 86 ? "산티아고 베르나베우" : "원정 경기")}</span>
+                </div>
+              </>
+            ) : (
+              <div className="hero-fixture-empty">
+                {fixturesLoading ? "예정 경기를 불러오고 있어요." : fixturesError ?? "표시할 예정 경기가 없습니다."}
+              </div>
+            )}
           </div>
-          <div className="hero-scroll">SCROLL TO EXPLORE <span /></div>
-        </div>
-        <div className="image-credit">
-          Photo: Zoser · cropped · <a href="https://commons.wikimedia.org/wiki/File:Estadio_Santiago_Bernab%C3%A9u_Madrid.jpg" target="_blank" rel="noreferrer">CC BY 4.0</a>
         </div>
       </section>
 
-      <section className="match-strip" aria-label="팀 정보">
-        <div className="strip-inner page-width">
-          <div className="strip-item"><span className="strip-icon"><Icon name="star" size={17} /></span><span><b>HALA MADRID</b><small>REAL MADRID · FAN PAGE</small></span></div>
-          <div className="strip-item"><span className="strip-number">15</span><span><b>EUROPEAN CUPS</b><small>THE MOST DECORATED</small></span></div>
-          <div className="strip-item"><span className="strip-number">1902</span><span><b>ESTABLISHED</b><small>MADRID, SPAIN</small></span></div>
-          <div className="strip-note">Siempre fieles. Siempre Madrid.</div>
+      <section className="schedule-section section-pad" id="schedule">
+        <div className="page-width">
+          <div className="schedule-heading">
+            <div>
+              <div className="eyebrow"><span /> THE ROAD AHEAD</div>
+              <h2>다음 <em>경기 일정</em></h2>
+            </div>
+            <span className="schedule-source">football-data.org</span>
+          </div>
+          <div className="fixture-grid">
+            {fixturesLoading && <div className="fixture-state">경기 일정을 불러오는 중입니다.</div>}
+            {!fixturesLoading && fixturesError && <div className="fixture-state fixture-error">{fixturesError}</div>}
+            {!fixturesLoading && !fixturesError && fixtures.length === 0 && <div className="fixture-state">현재 표시할 예정 경기가 없습니다.</div>}
+            {!fixturesLoading && !fixturesError && fixtures.map((fixture, index) => {
+              const { dateLabel, weekday } = formatFixtureDate(fixture.utcDate);
+              const isHome = fixture.homeTeam.id === 86;
+              return (
+                <article className={`fixture-card ${index === 0 ? "featured-fixture" : ""}`} key={fixture.id}>
+                  <div className="fixture-date"><strong>{dateLabel}</strong><small>{weekday}</small></div>
+                  <div className="fixture-competition"><b>{getCompetitionLabel(fixture)}</b><small>{formatKickoff(fixture)}</small></div>
+                  <div className="fixture-teams">
+                    <div className={`fixture-club ${fixture.homeTeam.id === 86 ? "" : "opponent"}`}><TeamMark team={fixture.homeTeam} /><span>{teamDisplayName(fixture.homeTeam)}</span></div>
+                    <span className="fixture-vs">VS</span>
+                    <div className={`fixture-club ${fixture.awayTeam.id === 86 ? "" : "opponent"}`}><TeamMark team={fixture.awayTeam} /><span>{teamDisplayName(fixture.awayTeam)}</span></div>
+                  </div>
+                  <div className="fixture-venue"><span>{fixture.venue ?? (isHome ? "산티아고 베르나베우" : "원정 경기")}</span><small>{isHome ? "HOME" : "AWAY"}</small></div>
+                </article>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -210,18 +374,12 @@ export default function Home() {
             <div>
               <div className="eyebrow"><span /> MATCHDAY · FAN RATINGS</div>
               <h2>팬이 선택한 <em>BEST 11</em></h2>
-              <p className="section-subtitle">입력하신 {season} 선수단 · {formation} 포메이션</p>
+              <p className="section-subtitle">{season} 시즌 · {formation} 포메이션</p>
             </div>
             <div className="rating-legend">
               <span className="legend-star"><Icon name="star" size={15} /></span>
-              <span><b>{season} 시즌 평균</b><small>제공해주신 JSON 기준</small></span>
+              <span><b>{season} 시즌 평균</b><small>SEASON AVERAGE</small></span>
             </div>
-          </div>
-
-          <div className="demo-notice">
-            <span className="notice-mark">i</span>
-            <span><b>데이터 안내</b> · 선수단과 시즌 평점은 제공해주신 JSON을 사용합니다. 최근 5경기 평점은 반영하지 않았고, 경기 일정은 예시 데이터예요.</span>
-            <span className="data-pill">2026–27 SQUAD</span>
           </div>
 
           <div className="lineup-layout">
@@ -249,7 +407,7 @@ export default function Home() {
                   );
                 })}
               </div>
-              <div className="pitch-footer"><span><i className="dot gold-dot" /> 선수 선택 후 팬 평점 남기기</span><span>4 DEF · 3 MID · 3 FWD</span></div>
+              <div className="pitch-footer"><span><i className="dot gold-dot" /> 선수를 선택해 팬 평점을 남겨보세요</span><span>4 DEF · 3 MID · 3 FWD</span></div>
             </div>
 
             <aside className="rating-panel">
@@ -262,13 +420,12 @@ export default function Home() {
                 <>
                   <div className="spotlight-score"><strong>{formatRating(selected.seasonAverage)}</strong><span>/ 10</span><div><Icon name="star" size={17} /><small>시즌 평균</small></div></div>
                   <div className="season-rating-detail">
-                    <div className="last-five-title"><span>{season} 시즌 평점</span><span>{selected.seasonAverage === null ? "기록 없음" : "입력 데이터"}</span></div>
+                    <div className="last-five-title"><span>{season} 시즌 평균</span><span>{selected.seasonAverage === null ? "기록 없음" : "입력 데이터"}</span></div>
                     {selected.seasonAverage === null ? (
-                      <p className="season-data-note">제공된 JSON에 시즌 평균이 없어 평점을 표시하지 않습니다.</p>
+                      <p className="season-data-note">시즌 평균 평점이 등록되지 않았습니다.</p>
                     ) : (
                       <div className="bar-track season-bar"><i style={{ width: `${selected.seasonAverage * 10}%` }} /></div>
                     )}
-                    <p className="season-data-note">요청에 따라 최근 5경기 평점은 사용하지 않았습니다.</p>
                   </div>
                   <div className="community-score">
                     <span><Icon name="users" size={16} /> 내 팬 평점</span>
@@ -301,37 +458,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="schedule-section section-pad" id="schedule">
-        <div className="page-width">
-          <div className="schedule-heading">
-            <div>
-              <div className="eyebrow"><span /> ON THE HORIZON</div>
-              <h2>다음 <em>경기 일정</em></h2>
-            </div>
-            <a className="text-link" href="#schedule">전체 일정 보기 <Icon name="arrow" size={16} /></a>
-          </div>
-          <div className="fixture-grid">
-            {fixtures.map((fixture, index) => (
-              <article className={`fixture-card ${index === 0 ? "featured-fixture" : ""}`} key={fixture.id}>
-                <div className="fixture-card-head"><span>{fixture.competition}</span><span className="fixture-date">{fixture.date}<small>{fixture.weekday}</small></span></div>
-                <div className="fixture-teams">
-                  <div className="fixture-club"><CrestMark /><span>REAL<br />MADRID</span></div>
-                  <span className="fixture-vs">VS</span>
-                  <div className="fixture-club opponent"><span className="opponent-badge">{fixture.opponentShort.slice(0, 1)}</span><span>{fixture.opponent.toUpperCase()}</span></div>
-                </div>
-                <div className="fixture-venue"><span><i /> {fixture.venue}</span><span>예시</span></div>
-              </article>
-            ))}
-          </div>
-          <p className="schedule-footnote">일정은 화면 확인을 위한 예시입니다. API 연동 후 공식 일정으로 교체할 수 있어요.</p>
-        </div>
-      </section>
-
       <section className="about-section" id="about">
         <div className="page-width about-inner">
           <div className="about-mark"><Icon name="star" size={22} /></div>
           <div><div className="eyebrow light"><span /> A FAN-POWERED SPACE</div><h2>우리의 목소리로<br /><em>만드는 평점.</em></h2></div>
-          <p>이곳의 평점은 구단이나 언론사의 공식 점수가 아닙니다. 팬들이 경기를 보고 직접 참여하는 비공식 팬 평가예요. 한 표 한 표가 모여 다음 경기의 이야기를 만듭니다.</p>
+          <p>이곳의 평점은 구단이나 언론사의 공식 점수가 아닙니다. 팬들이 경기를 보고 직접 참여하는 비공식 팬 평가예요.</p>
           <a className="about-button" href="#lineup">선수 평점 참여하기 <Icon name="arrow" size={16} /></a>
         </div>
       </section>
@@ -339,31 +470,29 @@ export default function Home() {
       <footer className="site-footer">
         <div className="page-width footer-main">
           <a className="brand footer-brand" href="#home"><CrestMark /><span className="brand-copy"><strong>MADRIDISTA</strong><small>FAN CLUB · KOREA</small></span></a>
-          <p>레알마드리드를 사랑하는 팬들을 위한 비공식 팬페이지</p>
-          <a href="#home" className="back-top">BACK TO TOP ↑</a>
+          <nav className="footer-nav" aria-label="푸터 메뉴">
+            <a href="#home">홈</a><a href="#schedule">경기 일정</a><a href="#lineup">베스트 11</a><a href="#about">팬 평점 안내</a>
+          </nav>
+          <p>레알마드리드 CF와 제휴되지 않은 비공식 팬 프로젝트입니다.</p>
         </div>
-        <div className="page-width footer-bottom" id="about-footer">
-          <span>© 2026 MADRIDISTA FAN PAGE · 비공식 팬 프로젝트</span>
-          <span>경기장 사진: Zoser / Wikimedia Commons · 크롭 편집 · CC BY 4.0</span>
+        <div className="page-width footer-bottom">
+          <span>© 2026 MADRIDISTA · 비공식 팬페이지</span>
+          <span>사진: Zoser / Wikimedia Commons · 크롭 편집 · CC BY 4.0</span>
+          <span>엠블럼은 Real Madrid CF의 상표입니다.</span>
         </div>
       </footer>
+
+      {mobileMenuOpen && <button className="menu-backdrop" aria-label="메뉴 닫기" onClick={() => setMobileMenuOpen(false)} />}
 
       {selected && (
         <div className="vote-dock" role="dialog" aria-label={`${selected.name} 팬 평점 입력`}>
           <div className="vote-dock-copy"><span className="dock-player-number">#{selected.number}</span><span><b>{selected.nameKr}</b><small>오늘 경기에서 이 선수는 어땠나요?</small></span></div>
           <div className="vote-scores" aria-label="1점부터 10점까지 선택">
             {Array.from({ length: 10 }, (_, index) => index + 1).map((score) => (
-              <button
-                key={score}
-                className={selectedScore === score ? "chosen" : ""}
-                onClick={() => setSelectedScore(score)}
-                aria-pressed={selectedScore === score}
-              >{score}</button>
+              <button key={score} className={selectedScore === score ? "chosen" : ""} onClick={() => setSelectedScore(score)} aria-pressed={selectedScore === score}>{score}</button>
             ))}
           </div>
-          <button className="submit-vote" onClick={submitVote} disabled={selectedScore === null}>
-            {saved ? "등록 완료 ✓" : "투표하기"}
-          </button>
+          <button className="submit-vote" onClick={submitVote} disabled={selectedScore === null}>{saved ? "등록 완료 ✓" : "투표하기"}</button>
           <button className="close-vote" onClick={() => { setSelectedPlayer(null); setSelectedScore(null); }} aria-label="평점 입력 닫기"><Icon name="close" size={18} /></button>
         </div>
       )}

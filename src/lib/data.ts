@@ -91,36 +91,6 @@ export const players: Player[] = squadData.players.map((player) => ({
   ...formationSlots[player.name],
 }));
 
-export const fixtures = [
-  {
-    id: "fixture-1",
-    date: "11.22",
-    weekday: "일요일",
-    competition: "LALIGA",
-    opponent: "Athletic Club",
-    opponentShort: "ATH",
-    venue: "Santiago Bernabéu",
-  },
-  {
-    id: "fixture-2",
-    date: "11.25",
-    weekday: "수요일",
-    competition: "CHAMPIONS LEAGUE",
-    opponent: "Liverpool",
-    opponentShort: "LIV",
-    venue: "Anfield",
-  },
-  {
-    id: "fixture-3",
-    date: "11.29",
-    weekday: "일요일",
-    competition: "LALIGA",
-    opponent: "Getafe",
-    opponentShort: "GET",
-    venue: "Santiago Bernabéu",
-  },
-];
-
 export function formatRating(rating: number | null) {
   return rating === null ? "—" : rating.toFixed(2);
 }
