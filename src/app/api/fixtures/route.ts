@@ -12,19 +12,21 @@ type Match = {
   competition: { code: string; name: string };
   homeTeam: Team;
   awayTeam: Team;
+  score?: { fullTime?: { home: number | null; away: number | null } };
 };
 
 export async function GET() {
   const token = process.env.FOOTBALL_DATA_API_KEY?.trim();
   if (!token) {
     return NextResponse.json(
-      { error: "FOOTBALL_DATA_API_KEY를 루트 .env에 입력한 뒤 개발 서버를 다시 시작하세요." },
+      { error: "FOOTBALL_DATA_API_KEY를 .env.local 또는 배포 환경변수에 설정하세요." },
       { status: 503 },
     );
   }
 
-  const dateFrom = new Date().toISOString().slice(0, 10);
-  const dateTo = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const now = Date.now();
+  const dateFrom = new Date(now - 120 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const dateTo = new Date(now + 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const url = new URL(`https://api.football-data.org/v4/teams/${REAL_MADRID_ID}/matches`);
   url.searchParams.set("dateFrom", dateFrom);
   url.searchParams.set("dateTo", dateTo);
@@ -46,26 +48,32 @@ export async function GET() {
     }
 
     const payload = (await response.json()) as { matches?: Match[] };
-    const matches = (payload.matches ?? [])
-      .filter(
-        (match) =>
-          (match.status === "SCHEDULED" || match.status === "TIMED") &&
-          SUPPORTED_COMPETITIONS.has(match.competition.code),
-      )
+    const coveredMatches = (payload.matches ?? []).filter((match) =>
+      SUPPORTED_COMPETITIONS.has(match.competition.code),
+    );
+    const toFixture = (match: Match) => ({
+      id: String(match.id),
+      utcDate: match.utcDate,
+      status: match.status,
+      competitionCode: match.competition.code,
+      competitionName: match.competition.name,
+      venue: match.venue ?? null,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      score: match.score?.fullTime ?? null,
+    });
+    const matches = coveredMatches
+      .filter((match) => match.status === "SCHEDULED" || match.status === "TIMED")
       .sort((a, b) => Date.parse(a.utcDate) - Date.parse(b.utcDate))
       .slice(0, 8)
-      .map((match) => ({
-        id: String(match.id),
-        utcDate: match.utcDate,
-        status: match.status,
-        competitionCode: match.competition.code,
-        competitionName: match.competition.name,
-        venue: match.venue ?? null,
-        homeTeam: match.homeTeam,
-        awayTeam: match.awayTeam,
-      }));
+      .map(toFixture);
+    const recentResults = coveredMatches
+      .filter((match) => match.status === "FINISHED")
+      .sort((a, b) => Date.parse(b.utcDate) - Date.parse(a.utcDate))
+      .slice(0, 5)
+      .map(toFixture);
 
-    return NextResponse.json({ matches, source: "football-data.org" });
+    return NextResponse.json({ matches, recentResults, source: "football-data.org" });
   } catch {
     return NextResponse.json(
       { error: "일정 서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요." },
