@@ -8,6 +8,7 @@ import { useState } from "react";
 const links = [
   { href: "/", label: "홈", id: "home" },
   { href: "/matches", label: "매치센터", id: "matches" },
+  { href: "/squad", label: "선수단", id: "squad" },
   { href: "/community", label: "팬 커뮤니티", id: "community" },
 ];
 
@@ -18,7 +19,7 @@ function Crest() {
 export function SiteHeader() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const active = pathname === "/" ? "home" : pathname.startsWith("/matches") ? "matches" : "community";
+  const active = pathname === "/" ? "home" : pathname.startsWith("/matches") ? "matches" : pathname.startsWith("/squad") ? "squad" : "community";
 
   return (
     <>
