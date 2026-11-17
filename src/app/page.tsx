@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { BestElevenPitch } from "@/components/best-eleven-pitch";
+import { HomePlayerRatings } from "@/components/home-player-ratings";
 import { TeamMark } from "@/components/team-mark";
 import { competitionLabel, koreanDate, koreanKickoff, realMadridHomeAway, teamDisplayName } from "@/lib/football-data";
 import { communityBoards, communityExamples } from "@/lib/community-examples";
@@ -144,12 +145,12 @@ function HomeContent() {
         </section>
 
         <section className="about-section" id="about">
-          <div className="page-width about-inner">
-            <div className="about-mark"><Icon name="calendar" size={22} /></div>
-            <div><div className="eyebrow light"><span /> YOUR MATCH NOTE</div><h2>나만의 경기<br /><em>평점을 기록.</em></h2></div>
-            <p>경기 종료 후 출전 명단이 확인된 선수에게 1~10점의 내 평점을 남길 수 있습니다. 평점은 이 브라우저에만 저장되며 다른 팬과 공유되지 않습니다.</p>
-            <Link className="about-button" href="/matches">경기 일정 보기 <Icon name="arrow" size={16} /></Link>
-          </div>
+          <HomePlayerRatings
+            matches={fixturesData.recentResults}
+            matchesLoading={fixturesLoading}
+            matchesError={fixturesError}
+            onRetry={retry}
+          />
         </section>
       </main>
       <SiteFooter />
