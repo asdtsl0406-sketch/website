@@ -1,10 +1,12 @@
 export const communityBoards = [
+  { id: "all", label: "전체", hint: "예시 글을 모아 봅니다" },
   { id: "match_discussion", label: "경기 토론", hint: "경기 전·후 생각을 나눠요" },
-  { id: "tactics_players", label: "전술·선수", hint: "포메이션과 선수 이야기를 해요" },
-  { id: "free_chat", label: "자유·잡담", hint: "유니폼·직관·일상 이야기도 환영" },
+  { id: "tactics_players", label: "선수·전술", hint: "포메이션과 선수 이야기를 해요" },
+  { id: "free_chat", label: "자유게시판", hint: "유니폼·직관·일상 이야기도 환영" },
 ] as const;
 
 export type CommunityBoardId = (typeof communityBoards)[number]["id"];
+export type CommunityContentBoardId = Exclude<CommunityBoardId, "all">;
 
 export const communityExamples = [
   {
@@ -12,7 +14,7 @@ export const communityExamples = [
     board: "match_discussion",
     title: "경기 흐름을 함께 되짚어보는 예시 토론",
     summary: "전반과 후반의 리듬, 어떤 장면이 기억에 남나요?",
-    body: "이 글은 팬라운지 화면을 미리 보는 예시 게시글입니다.\n\n특정 실제 경기를 가리키지 않습니다. 경기 중 인상 깊었던 장면이나 응원하면서 느낀 점을 자유롭게 나눠보는 공간이에요.",
+    body: "이 글은 팬 커뮤니티 화면을 미리 보는 예시 게시글입니다.\n\n특정 실제 경기를 가리키지 않습니다. 경기 중 인상 깊었던 장면이나 응원하면서 느낀 점을 자유롭게 나눠보는 공간이에요.",
   },
   {
     id: "example-match-2",
@@ -26,7 +28,7 @@ export const communityExamples = [
     board: "tactics_players",
     title: "4-3-3 중원 간격을 살펴보는 예시 전술 글",
     summary: "포메이션과 움직임을 이야기하는 게시판 예시입니다.",
-    body: "이 글은 전술·선수 게시판의 예시 게시글입니다.\n\n4-3-3 포메이션에서 중원 간격과 전환 움직임을 어떻게 볼 수 있을지 이야기하는 형식을 보여줍니다. 실제 경기 분석이나 선수 평가가 아닙니다.",
+    body: "이 글은 선수·전술 게시판의 예시 게시글입니다.\n\n포메이션에서 중원 간격과 전환 움직임을 어떻게 볼 수 있을지 이야기하는 형식을 보여줍니다. 실제 경기 분석이나 선수 평가가 아닙니다.",
   },
   {
     id: "example-tactics-2",
@@ -39,8 +41,8 @@ export const communityExamples = [
     id: "example-chat-1",
     board: "free_chat",
     title: "이번 시즌 유니폼, 어떤 디자인이 취향인가요?",
-    summary: "유니폼 이야기를 나누는 자유·잡담 예시입니다.",
-    body: "이 글은 자유·잡담 게시판을 소개하는 예시 게시글입니다.\n\n좋아하는 유니폼 디자인이나 소장한 굿즈에 대해 편하게 이야기하는 모습을 보여줍니다. 실제 팬 활동 기록은 아닙니다.",
+    summary: "유니폼 이야기를 나누는 자유게시판 예시입니다.",
+    body: "이 글은 자유게시판을 소개하는 예시 게시글입니다.\n\n좋아하는 유니폼 디자인이나 소장한 굿즈에 대해 편하게 이야기하는 모습을 보여줍니다. 실제 팬 활동 기록은 아닙니다.",
   },
   {
     id: "example-chat-2",
@@ -51,7 +53,7 @@ export const communityExamples = [
   },
 ] satisfies Array<{
   id: string;
-  board: CommunityBoardId;
+  board: CommunityContentBoardId;
   title: string;
   summary: string;
   body: string;

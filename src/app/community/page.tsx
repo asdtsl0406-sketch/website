@@ -17,7 +17,7 @@ export default function CommunityPage() {
   }, []);
 
   const selectedBoard = communityBoards.find((item) => item.id === board) ?? communityBoards[0];
-  const posts = communityExamples.filter((post) => post.board === board);
+  const posts = communityExamples.filter((post) => board === "all" || post.board === board);
 
   return (
     <>
@@ -27,10 +27,10 @@ export default function CommunityPage() {
           <header className="inner-page-heading community-heading">
             <div>
               <div className="eyebrow"><span /> OPEN STANDS</div>
-              <h1>팬라운지</h1>
+              <h1>팬 커뮤니티</h1>
               <p>경기와 전술, 유니폼과 일상까지. 마드리디스타의 이야기를 둘러보세요.</p>
             </div>
-            <span className="community-preview-note">둘러보기용 미리보기</span>
+            <span className="community-preview-note">커뮤니티 미리보기</span>
           </header>
 
           <div className="community-layout">
@@ -48,7 +48,7 @@ export default function CommunityPage() {
                 </button>
               ))}
               <div className="board-guideline">
-                <strong>자유·잡담도 환영해요</strong>
+                <strong>자유게시판도 환영해요</strong>
                 <p>유니폼, 직관 후기와 일상 이야기를 나누는 공개 게시판입니다. 아래 글은 모두 예시입니다.</p>
               </div>
             </aside>

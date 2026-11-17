@@ -18,6 +18,8 @@ export type FixturesResponse = {
   recentResults: FootballMatch[];
 };
 
+export type TeamMatch = Pick<FootballMatch, "homeTeam" | "awayTeam">;
+
 export type AppearedPlayer = {
   playerId: string;
   playerName: string;
@@ -64,7 +66,7 @@ export function koreanDate(utcDate: string) {
 }
 
 export function koreanKickoff(match: Pick<FootballMatch, "status" | "utcDate">) {
-  if (match.status !== "TIMED") return "시간 미정";
+  if (match.status !== "TIMED" && match.status !== "FINISHED") return "시간 미정";
   const time = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
     hour: "2-digit",
@@ -76,4 +78,10 @@ export function koreanKickoff(match: Pick<FootballMatch, "status" | "utcDate">) 
 
 export function teamDisplayName(team: FootballTeam) {
   return team.id === 86 ? "REAL MADRID" : (team.shortName ?? team.name).toUpperCase();
+}
+
+export function realMadridHomeAway(match: TeamMatch) {
+  if (match.homeTeam.id === 86) return "홈";
+  if (match.awayTeam.id === 86) return "원정";
+  return null;
 }

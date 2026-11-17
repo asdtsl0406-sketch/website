@@ -14,7 +14,7 @@ export function SiteFooter() {
           <span className="brand-copy"><strong>MADRIDISTA</strong><small>FAN CLUB · KOREA</small></span>
         </Link>
         <nav className="footer-nav" aria-label="푸터 메뉴">
-          <Link href="/">홈</Link><Link href="/matches">매치센터</Link><Link href="/community">팬라운지</Link>
+          <Link href="/">홈</Link><Link href="/matches">매치센터</Link><Link href="/community">팬 커뮤니티</Link>
         </nav>
         <p>레알마드리드 CF와 제휴되지 않은 비공식 팬 프로젝트입니다.</p>
       </div>

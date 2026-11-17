@@ -31,7 +31,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const token = process.env.FOOTBALL_DATA_API_KEY?.trim();
   if (!token) {
-    return NextResponse.json({ error: "FOOTBALL_DATA_API_KEY가 설정되지 않았습니다." }, { status: 503 });
+    return NextResponse.json({ error: "경기 정보를 불러오지 못했습니다." }, { status: 503 });
   }
 
   try {
@@ -45,7 +45,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       next: { revalidate: 300 },
     });
     if (!response.ok) {
-      return NextResponse.json({ error: "경기 상세 정보를 가져오지 못했습니다." }, { status: 502 });
+      return NextResponse.json({ error: "경기 정보를 불러오지 못했습니다." }, { status: 502 });
     }
 
     const match = (await response.json()) as ProviderMatch;
@@ -86,6 +86,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       ratingEnabled: match.status === "FINISHED" && appearedPlayers.length > 0,
     });
   } catch {
-    return NextResponse.json({ error: "경기 상세 서버에 연결할 수 없습니다." }, { status: 502 });
+    return NextResponse.json({ error: "경기 정보를 불러오지 못했습니다." }, { status: 502 });
   }
 }

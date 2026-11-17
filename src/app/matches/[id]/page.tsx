@@ -5,10 +5,22 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { competitionLabel, koreanDate, type FootballTeam, type MatchDetails, type AppearedPlayer } from "@/lib/football-data";
+import { competitionLabel, koreanDate, koreanKickoff, type FootballTeam, type MatchDetails, type AppearedPlayer } from "@/lib/football-data";
 
 const RATING_STORAGE_KEY = "madridista-match-ratings";
 type StoredRatings = Record<string, Record<string, number>>;
+
+function matchStatusLabel(status: string) {
+  if (status === "FINISHED") return "경기 종료";
+  if (status === "POSTPONED") return "연기";
+  if (status === "CANCELLED" || status === "CANCELED") return "취소";
+  if (status === "ABANDONED") return "중단";
+  if (status === "SUSPENDED") return "일시 중단";
+  if (status === "IN_PLAY" || status === "PAUSED") return "경기 진행 중";
+  if (status === "TIMED") return "경기 예정";
+  if (status === "SCHEDULED") return "경기 예정 · 시간 미정";
+  return "경기 시간 미정";
+}
 
 function readStoredRatings(): StoredRatings {
   try {
@@ -55,6 +67,7 @@ export default function MatchDetailPage() {
   const homePlayers = match?.appearedPlayers.filter((player) => player.teamId === match.homeTeam.id) ?? [];
   const awayPlayers = match?.appearedPlayers.filter((player) => player.teamId === match.awayTeam.id) ?? [];
   const dateLabel = match ? koreanDate(match.utcDate) : null;
+  const suppressScore = match ? ["POSTPONED", "CANCELLED", "CANCELED", "ABANDONED"].includes(match.status) : false;
 
   function saveRating() {
     if (!match || !selectedPlayer || selectedScore === null) return;
@@ -109,13 +122,13 @@ export default function MatchDetailPage() {
             <>
               <header className="match-detail-heading">
                 <div className="eyebrow"><span /> {competitionLabel(match.competitionCode, match.competitionName)}</div>
-                <p>{dateLabel?.dateLabel} · {dateLabel?.weekday} · {match.venue ?? "경기장 미정"}</p>
+                <p>{dateLabel?.dateLabel} · {dateLabel?.weekday} · {koreanKickoff(match)} · {match.venue ?? "경기장 미정"}</p>
                 <div className="match-detail-scoreboard">
                   <span>{match.homeTeam.name}</span>
-                  <strong>{match.score?.home ?? "—"}<i>:</i>{match.score?.away ?? "—"}</strong>
+                  <strong>{suppressScore ? "—" : (match.score?.home ?? "—")}<i>:</i>{suppressScore ? "—" : (match.score?.away ?? "—")}</strong>
                   <span>{match.awayTeam.name}</span>
                 </div>
-                <span className="match-status-label">{match.status === "FINISHED" ? "경기 종료" : "예정 경기"}</span>
+                <span className="match-status-label">{matchStatusLabel(match.status)}</span>
               </header>
 
               <section className="match-review-links">

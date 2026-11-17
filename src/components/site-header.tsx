@@ -8,7 +8,7 @@ import { useState } from "react";
 const links = [
   { href: "/", label: "홈", id: "home" },
   { href: "/matches", label: "매치센터", id: "matches" },
-  { href: "/community", label: "팬라운지", id: "community" },
+  { href: "/community", label: "팬 커뮤니티", id: "community" },
 ];
 
 function Crest() {

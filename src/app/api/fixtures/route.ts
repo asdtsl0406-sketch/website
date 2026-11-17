@@ -63,7 +63,11 @@ export async function GET() {
       .slice(0, 8)
       .map(toFixture);
     const recentResults = coveredMatches
-      .filter((match) => match.status === "FINISHED")
+      .filter((match) =>
+        match.status === "FINISHED" &&
+        typeof match.score?.fullTime?.home === "number" &&
+        typeof match.score?.fullTime?.away === "number",
+      )
       .sort((a, b) => Date.parse(b.utcDate) - Date.parse(a.utcDate))
       .slice(0, 5)
       .map(toFixture);
