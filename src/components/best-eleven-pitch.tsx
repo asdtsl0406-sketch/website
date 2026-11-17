@@ -7,6 +7,17 @@ const formationLines = [
   ["GK"],
 ];
 const lineLabels = ["공격수", "미드필더", "수비수", "골키퍼"];
+const englishPositionLabels: Record<string, { abbreviation: string; fullName: string }> = {
+  LW: { abbreviation: "LW", fullName: "Left Winger" },
+  ST: { abbreviation: "CF", fullName: "Centre Forward" },
+  RW: { abbreviation: "RW", fullName: "Right Winger" },
+  CM: { abbreviation: "CM", fullName: "Central Midfielder" },
+  CDM: { abbreviation: "DM", fullName: "Defensive Midfielder" },
+  LB: { abbreviation: "LB", fullName: "Left Back" },
+  CB: { abbreviation: "CB", fullName: "Centre Back" },
+  RB: { abbreviation: "RB", fullName: "Right Back" },
+  GK: { abbreviation: "GK", fullName: "Goalkeeper" },
+};
 
 function playersInLine(positions: string[]) {
   const remaining = [...players];
@@ -16,7 +27,7 @@ function playersInLine(positions: string[]) {
   });
 }
 
-export function BestElevenPitch() {
+export function BestElevenPitch({ englishPositions = false }: { englishPositions?: boolean }) {
   const lines = formationLines.map(playersInLine);
 
   return (
@@ -44,7 +55,14 @@ export function BestElevenPitch() {
               {line.map((player) => (
                 <div className="best-eleven-player" role="listitem" key={player.id}>
                   <span className="best-eleven-player-name">{player.nameKr}</span>
-                  <small>{player.role}</small>
+                  {englishPositions ? (
+                    <small
+                      title={englishPositionLabels[player.position]?.fullName ?? player.role}
+                      aria-label={englishPositionLabels[player.position]?.fullName ?? player.role}
+                    >{englishPositionLabels[player.position]?.abbreviation ?? player.position}</small>
+                  ) : (
+                    <small>{player.role}</small>
+                  )}
                 </div>
               ))}
             </div>

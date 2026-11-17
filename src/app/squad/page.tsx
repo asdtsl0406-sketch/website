@@ -26,6 +26,10 @@ const filters: Array<{ label: string; position: Position | null }> = [
 
 const positionOrder: Position[] = ["골키퍼", "수비수", "미드필더", "공격수"];
 
+function normalizeSearch(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase();
+}
+
 export default function SquadPage() {
   const [squad, setSquad] = useState<SquadPlayer[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -52,10 +56,10 @@ export default function SquadPage() {
   }, [attempt]);
 
   const filteredPlayers = useMemo(() => {
-    const search = query.trim().toLocaleLowerCase();
+    const search = normalizeSearch(query.trim());
     return squad.filter((player) => {
       const matchesPosition = selectedPosition === null || player.position === selectedPosition;
-      const matchesSearch = !search || `${player.name} ${player.searchName}`.toLocaleLowerCase().includes(search);
+      const matchesSearch = !search || normalizeSearch(`${player.name} ${player.searchName}`).includes(search);
       return matchesPosition && matchesSearch;
     });
   }, [squad, selectedPosition, query]);

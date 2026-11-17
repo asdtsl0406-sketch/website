@@ -120,7 +120,7 @@ function HomeContent() {
         </section>
 
         <section className="home-xi-section section-pad page-width">
-          <BestElevenPitch />
+          <BestElevenPitch englishPositions />
         </section>
 
         <section className="home-community-section">
