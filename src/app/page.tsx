@@ -126,8 +126,8 @@ function HomeContent() {
         <section className="home-xi-section section-pad">
           <div className="page-width">
             <div className="home-section-heading">
-              <div><div className="eyebrow"><span /> 선수단 참고</div><h2>선수 정보를 <em>다시 확인해요</em></h2></div>
-              <Link className="text-link" href="/matches#best11">매치센터 <span aria-hidden="true">→</span></Link>
+              <div><h2>포지션별 선수 소개</h2></div>
+              <Link className="text-link" href="/matches#best11">경기 일정 보기 <span aria-hidden="true">→</span></Link>
             </div>
             <SquadReference />
           </div>

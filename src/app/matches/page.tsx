@@ -58,9 +58,8 @@ export default function MatchesPage() {
           </section>
 
           <section className="matches-best11" id="best11" aria-labelledby="best-eleven-title">
-            <div className="match-list-heading"><div><div className="eyebrow"><span /> 선수단 참고</div><h2 id="best-eleven-title">선수 정보</h2></div></div>
+            <div className="match-list-heading"><div><h2 id="best-eleven-title">포지션별 선수 소개</h2></div></div>
             <SquadReference />
-            <p className="squad-stats-note">시즌 평균, 등번호와 순위는 검증 가능한 출처가 없어 표시하지 않습니다. 실제 경기 출전 명단은 해당 경기 상세에서 API 제공 시 확인할 수 있습니다.</p>
           </section>
         </div>
       </main>
