@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { communityBoards, communityExamples, type CommunityBoardId } from "@/lib/community-examples";
+import { communityBoardCopy } from "@/lib/community-board-copy";
+import styles from "./community.module.css";
 
 export default function CommunityPage() {
-  const [board, setBoard] = useState<CommunityBoardId>("match_discussion");
+  const [board, setBoard] = useState<CommunityBoardId>("all");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("board");
@@ -17,66 +20,67 @@ export default function CommunityPage() {
   }, []);
 
   const selectedBoard = communityBoards.find((item) => item.id === board) ?? communityBoards[0];
-  const posts = communityExamples.filter((post) => board === "all" || post.board === board);
+  const posts = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    return communityExamples
+      .filter((post) => board === "all" || post.board === board)
+      .map((post) => ({ ...post, ...communityBoardCopy[post.id] }))
+      .filter((post) => !normalizedQuery || post.title.toLocaleLowerCase().includes(normalizedQuery));
+  }, [board, query]);
 
   return (
     <>
       <SiteHeader />
-      <main className="inner-page community-page">
+      <main className={`inner-page ${styles.page}`}>
         <div className="page-width">
-          <header className="inner-page-heading community-heading">
-            <div>
-              <div className="eyebrow"><span /> OPEN STANDS</div>
-              <h1>팬 커뮤니티</h1>
-              <p>경기와 전술, 유니폼과 일상까지. 마드리디스타의 이야기를 둘러보세요.</p>
-            </div>
-            <span className="community-preview-note">커뮤니티 미리보기</span>
+          <header className={styles.heading}>
+            <h1>팬 커뮤니티</h1>
+            <p>경기부터 직관 후기까지, 마드리디스타의 이야기</p>
           </header>
 
-          <div className="community-layout">
-            <aside className="board-rail" aria-label="게시판 선택">
-              <span className="rail-label">BOARDS</span>
-              {communityBoards.map((item) => (
-                <button
-                  type="button"
-                  className={board === item.id ? "active" : ""}
-                  key={item.id}
-                  aria-pressed={board === item.id}
-                  onClick={() => setBoard(item.id)}
-                >
-                  <b>{item.label}</b><small>{item.hint}</small>
-                </button>
-              ))}
-              <div className="board-guideline">
-                <strong>자유게시판도 환영해요</strong>
-                <p>유니폼, 직관 후기와 일상 이야기를 나누는 공개 게시판입니다. 아래 글은 모두 예시입니다.</p>
+          <section className={styles.feed} aria-label={`${selectedBoard.label} 게시판`}>
+            <div className={styles.controls}>
+              <div className={styles.tabs} aria-label="게시판 분류">
+                {communityBoards.map((item) => (
+                  <button
+                    className={`${styles.tab} ${board === item.id ? styles.activeTab : ""}`}
+                    type="button"
+                    key={item.id}
+                    aria-pressed={board === item.id}
+                    onClick={() => setBoard(item.id)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
-            </aside>
+              <label className={styles.search}>
+                <span className={styles.srOnly}>글 제목 검색</span>
+                <input
+                  type="search"
+                  value={query}
+                  placeholder="글 제목 검색"
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+            </div>
 
-            <section className="community-feed" aria-labelledby="community-feed-title">
-              <div className="feed-heading">
-                <div>
-                  <span className="eyebrow"><span /> {selectedBoard.label.toUpperCase()}</span>
-                  <h2 id="community-feed-title">{selectedBoard.label}</h2>
-                  <p>{selectedBoard.hint}</p>
-                </div>
-                <span className="example-label">예시 게시글</span>
-              </div>
-              <div className="post-list">
+            <p className={styles.previewNote}>게시판 미리보기 · 아래 글은 예시입니다</p>
+            {posts.length === 0 ? (
+              <p className={styles.emptyState} role="status">검색 조건에 맞는 글이 없어요</p>
+            ) : (
+              <div className={styles.postList}>
                 {posts.map((post) => (
-                  <Link className="post-row" href={`/community/${post.id}`} key={post.id}>
-                    <span className="post-category">예시 게시글</span>
-                    <span className="post-row-main">
+                  <Link className={styles.postRow} href={`/community/${post.id}`} key={post.id}>
+                    <span className={styles.category}>{communityBoards.find((item) => item.id === post.board)?.label}</span>
+                    <span className={styles.postContent}>
                       <b>{post.title}</b>
                       <small>{post.summary}</small>
                     </span>
-                    <span className="post-example-mark">예시</span>
                   </Link>
                 ))}
               </div>
-              <p className="community-disclaimer">표시된 글은 화면 미리보기를 위한 예시이며 실제 팬이 작성한 게시글이나 댓글이 아닙니다.</p>
-            </section>
-          </div>
+            )}
+          </section>
         </div>
       </main>
       <SiteFooter />
