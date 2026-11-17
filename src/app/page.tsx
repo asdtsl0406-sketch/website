@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { SquadReference } from "@/components/squad-reference";
-import { competitionLabel, koreanDate, koreanKickoff, realMadridHomeAway, teamDisplayName, type FootballTeam } from "@/lib/football-data";
+import { BestElevenPitch } from "@/components/best-eleven-pitch";
+import { TeamMark } from "@/components/team-mark";
+import { competitionLabel, koreanDate, koreanKickoff, realMadridHomeAway, teamDisplayName } from "@/lib/football-data";
 import { communityBoards, communityExamples } from "@/lib/community-examples";
 import { useFixtures } from "@/lib/use-fixtures";
 
@@ -13,15 +14,6 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true as const };
   if (name === "calendar") return <svg {...common}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></svg>;
   return <svg {...common}><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
-}
-
-function CrestMark() {
-  return <span className="crest-mark" aria-hidden="true"><Image src="/images/real-madrid-crest.svg" alt="" fill sizes="42px" unoptimized /></span>;
-}
-
-function TeamMark({ team }: { team: FootballTeam }) {
-  if (team.id === 86) return <CrestMark />;
-  return <span className="opponent-badge">{team.tla ?? team.shortName?.slice(0, 1) ?? team.name.slice(0, 1)}</span>;
 }
 
 function HomeContent() {
@@ -86,8 +78,8 @@ function HomeContent() {
         <section className="home-results-section section-pad">
           <div className="page-width">
             <div className="home-section-heading">
-              <div><div className="eyebrow"><span /> 최근 경기 결과</div><h2>최근 <em>스코어</em></h2></div>
-              <Link className="text-link" href="/matches">경기 일정 보기 <span aria-hidden="true">→</span></Link>
+              <div><h2>최근 경기 결과</h2></div>
+              <Link className="text-link" href="/matches">경기 결과 더 보기 <span aria-hidden="true">→</span></Link>
             </div>
             {fixturesLoading ? (
               <div className="home-empty">최근 경기 결과를 불러오는 중입니다.</div>
@@ -101,9 +93,9 @@ function HomeContent() {
                 <Link className="result-feature" href={`/matches/${latestResult.id}`}>
                   <div className="result-feature-top"><span>{competitionLabel(latestResult.competitionCode, latestResult.competitionName)}</span><span>{koreanDate(latestResult.utcDate).dateLabel}</span></div>
                   <div className="result-feature-score">
-                    <span>{teamDisplayName(latestResult.homeTeam)}</span>
+                    <span className="result-feature-team"><TeamMark team={latestResult.homeTeam} /><b>{teamDisplayName(latestResult.homeTeam)}</b></span>
                     <strong>{latestResult.score?.home ?? "—"}<i>:</i>{latestResult.score?.away ?? "—"}</strong>
-                    <span>{teamDisplayName(latestResult.awayTeam)}</span>
+                    <span className="result-feature-team away"><TeamMark team={latestResult.awayTeam} /><b>{teamDisplayName(latestResult.awayTeam)}</b></span>
                   </div>
                   <div className="result-feature-bottom"><span>{realMadridHomeAway(latestResult) ?? "종료된 경기"}</span><span>경기 상세 보기 →</span></div>
                 </Link>
@@ -111,7 +103,11 @@ function HomeContent() {
                   {fixturesData.recentResults.slice(1, 5).map((match) => (
                     <Link className="result-row" href={`/matches/${match.id}`} key={match.id}>
                       <span className="result-row-date">{koreanDate(match.utcDate).dateLabel}</span>
-                      <span className="result-row-teams">{teamDisplayName(match.homeTeam)} <b>{match.score?.home ?? "—"} : {match.score?.away ?? "—"}</b> {teamDisplayName(match.awayTeam)}</span>
+                      <span className="result-row-teams">
+                        <span className="result-row-team"><TeamMark team={match.homeTeam} /><b>{teamDisplayName(match.homeTeam)}</b></span>
+                        <strong>{match.score?.home ?? "—"} : {match.score?.away ?? "—"}</strong>
+                        <span className="result-row-team away"><TeamMark team={match.awayTeam} /><b>{teamDisplayName(match.awayTeam)}</b></span>
+                      </span>
                       <span className="result-row-comp">{competitionLabel(match.competitionCode, match.competitionName)}</span>
                     </Link>
                   ))}
@@ -123,14 +119,8 @@ function HomeContent() {
           </div>
         </section>
 
-        <section className="home-xi-section section-pad">
-          <div className="page-width">
-            <div className="home-section-heading">
-              <div><h2>포지션별 선수 소개</h2></div>
-              <Link className="text-link" href="/matches#best11">경기 일정 보기 <span aria-hidden="true">→</span></Link>
-            </div>
-            <SquadReference />
-          </div>
+        <section className="home-xi-section section-pad page-width">
+          <BestElevenPitch />
         </section>
 
         <section className="home-community-section">

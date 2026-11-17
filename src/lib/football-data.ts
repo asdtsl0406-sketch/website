@@ -1,4 +1,4 @@
-export type FootballTeam = { id: number; name: string; shortName?: string; tla?: string };
+export type FootballTeam = { id: number; name: string; shortName?: string; tla?: string; crest?: string | null };
 export type FullTimeScore = { home: number | null; away: number | null } | null;
 
 export type FootballMatch = {

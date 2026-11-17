@@ -1,21 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { SquadReference } from "@/components/squad-reference";
-import { competitionLabel, koreanDate, koreanKickoff, teamDisplayName, type FootballMatch, type FootballTeam } from "@/lib/football-data";
+import { BestElevenPitch } from "@/components/best-eleven-pitch";
+import { TeamMark } from "@/components/team-mark";
+import { competitionLabel, koreanDate, koreanKickoff, teamDisplayName, type FootballMatch } from "@/lib/football-data";
 import { useFixtures } from "@/lib/use-fixtures";
-
-function CrestMark() {
-  return <span className="crest-mark" aria-hidden="true"><Image src="/images/real-madrid-crest.svg" alt="" fill sizes="42px" unoptimized /></span>;
-}
-
-function TeamMark({ team }: { team: FootballTeam }) {
-  if (team.id === 86) return <CrestMark />;
-  return <span className="opponent-badge">{team.tla ?? team.shortName?.slice(0, 1) ?? team.name.slice(0, 1)}</span>;
-}
 
 function MatchRow({ match, result = false }: { match: FootballMatch; result?: boolean }) {
   const { dateLabel, weekday } = koreanDate(match.utcDate);
@@ -57,9 +48,8 @@ export default function MatchesPage() {
             {loading ? <div className="page-state">최근 경기 결과를 불러오는 중입니다.</div> : error ? <div className="page-state error">{error} <button className="retry-button" type="button" onClick={retry}>다시 시도</button></div> : data.recentResults.length ? data.recentResults.map((match) => <MatchRow key={match.id} match={match} result />) : <div className="page-state">표시할 최근 경기 결과가 없습니다.</div>}
           </section>
 
-          <section className="matches-best11" id="best11" aria-labelledby="best-eleven-title">
-            <div className="match-list-heading"><div><h2 id="best-eleven-title">포지션별 선수 소개</h2></div></div>
-            <SquadReference />
+          <section className="matches-best11" id="best11">
+            <BestElevenPitch />
           </section>
         </div>
       </main>
