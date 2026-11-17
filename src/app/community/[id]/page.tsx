@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { communityBoardCopy } from "@/lib/community-board-copy";
 import { communityBoards, communityExamples } from "@/lib/community-examples";
 
 export default async function CommunityPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const post = communityExamples.find((item) => item.id === id);
   const board = communityBoards.find((item) => item.id === post?.board);
+  const copy = communityBoardCopy[id];
 
   return (
     <>
@@ -20,11 +22,10 @@ export default async function CommunityPostPage({ params }: { params: Promise<{ 
             <article className="post-detail">
               <div className="post-detail-meta">
                 <span className="board-label">{board?.label}</span>
-                <span className="example-label">예시 게시글</span>
+                <span className="example-label">예시 글</span>
               </div>
-              <h1>{post.title}</h1>
-              <p className="post-example-note">커뮤니티 둘러보기를 위한 예시 콘텐츠입니다. 실제 팬의 게시글이 아닙니다.</p>
-              <div className="post-body">{post.body}</div>
+              <h1>{copy?.title ?? post.title}</h1>
+              <div className="post-body">{copy?.body ?? post.body}</div>
             </article>
           )}
         </div>
