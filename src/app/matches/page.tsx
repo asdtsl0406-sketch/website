@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { SquadReference } from "@/components/squad-reference";
 import { competitionLabel, koreanDate, koreanKickoff, teamDisplayName, type FootballMatch, type FootballTeam } from "@/lib/football-data";
 import { useFixtures } from "@/lib/use-fixtures";
 
@@ -57,8 +58,9 @@ export default function MatchesPage() {
           </section>
 
           <section className="matches-best11" id="best11" aria-labelledby="best-eleven-title">
-            <div className="match-list-heading"><div><div className="eyebrow"><span /> 선수 정보</div><h2 id="best-eleven-title">시즌 선수 정보</h2></div></div>
-            <div className="page-state">확인 가능한 출처의 시즌 베스트 11과 선수별 평균 데이터가 없어 표시하지 않습니다. 실제 출전 명단은 API가 제공하는 경기 상세에서만 확인할 수 있습니다.</div>
+            <div className="match-list-heading"><div><div className="eyebrow"><span /> 선수단 참고</div><h2 id="best-eleven-title">선수 정보</h2></div></div>
+            <SquadReference />
+            <p className="squad-stats-note">시즌 평균, 등번호와 순위는 검증 가능한 출처가 없어 표시하지 않습니다. 실제 경기 출전 명단은 해당 경기 상세에서 API 제공 시 확인할 수 있습니다.</p>
           </section>
         </div>
       </main>

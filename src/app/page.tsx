@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { SquadReference } from "@/components/squad-reference";
 import { competitionLabel, koreanDate, koreanKickoff, realMadridHomeAway, teamDisplayName, type FootballTeam } from "@/lib/football-data";
 import { communityBoards, communityExamples } from "@/lib/community-examples";
 import { useFixtures } from "@/lib/use-fixtures";
@@ -125,12 +126,10 @@ function HomeContent() {
         <section className="home-xi-section section-pad">
           <div className="page-width">
             <div className="home-section-heading">
-              <div><div className="eyebrow"><span /> 선수 정보</div><h2>확인된 정보만 <em>표시합니다</em></h2></div>
+              <div><div className="eyebrow"><span /> 선수단 참고</div><h2>선수 정보를 <em>다시 확인해요</em></h2></div>
               <Link className="text-link" href="/matches#best11">매치센터 <span aria-hidden="true">→</span></Link>
             </div>
-            <div className="page-state">
-              선수별 시즌 평균과 베스트 11은 확인 가능한 데이터 출처가 없어 표시하지 않습니다. 실제 출전 명단은 API가 제공하는 경기 상세에서만 확인할 수 있습니다.
-            </div>
+            <SquadReference />
           </div>
         </section>
 
