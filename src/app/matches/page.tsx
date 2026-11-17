@@ -1,20 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { competitionLabel, koreanDate, koreanKickoff, teamDisplayName, type FootballMatch, type FootballTeam } from "@/lib/football-data";
+import { BestElevenPitch } from "@/components/best-eleven-pitch";
+import { TeamMark } from "@/components/team-mark";
+import { competitionLabel, koreanDate, koreanKickoff, teamDisplayName, type FootballMatch } from "@/lib/football-data";
 import { useFixtures } from "@/lib/use-fixtures";
-
-function CrestMark() {
-  return <span className="crest-mark" aria-hidden="true"><Image src="/images/real-madrid-crest.svg" alt="" fill sizes="42px" unoptimized /></span>;
-}
-
-function TeamMark({ team }: { team: FootballTeam }) {
-  if (team.id === 86) return <CrestMark />;
-  return <span className="opponent-badge">{team.tla ?? team.shortName?.slice(0, 1) ?? team.name.slice(0, 1)}</span>;
-}
 
 function MatchRow({ match, result = false }: { match: FootballMatch; result?: boolean }) {
   const { dateLabel, weekday } = koreanDate(match.utcDate);
@@ -56,9 +48,8 @@ export default function MatchesPage() {
             {loading ? <div className="page-state">최근 경기 결과를 불러오는 중입니다.</div> : error ? <div className="page-state error">{error} <button className="retry-button" type="button" onClick={retry}>다시 시도</button></div> : data.recentResults.length ? data.recentResults.map((match) => <MatchRow key={match.id} match={match} result />) : <div className="page-state">표시할 최근 경기 결과가 없습니다.</div>}
           </section>
 
-          <section className="matches-best11" id="best11" aria-labelledby="best-eleven-title">
-            <div className="match-list-heading"><div><div className="eyebrow"><span /> 선수 정보</div><h2 id="best-eleven-title">시즌 선수 정보</h2></div></div>
-            <div className="page-state">확인 가능한 출처의 시즌 베스트 11과 선수별 평균 데이터가 없어 표시하지 않습니다. 실제 출전 명단은 API가 제공하는 경기 상세에서만 확인할 수 있습니다.</div>
+          <section className="matches-best11" id="best11">
+            <BestElevenPitch />
           </section>
         </div>
       </main>

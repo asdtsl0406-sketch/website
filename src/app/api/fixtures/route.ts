@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 const REAL_MADRID_ID = 86;
 const SUPPORTED_COMPETITIONS = new Set(["PD", "CL", "CDR"]);
 
-type Team = { id: number; name: string; shortName?: string; tla?: string };
+type Team = { id: number; name: string; shortName?: string; tla?: string; crest?: string | null };
 type Match = {
   id: number;
   utcDate: string;
