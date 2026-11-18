@@ -16,6 +16,7 @@ import {
   COMMUNITY_POST_RATE_LIMIT_WINDOW_MS,
   checkCommunityPostRateLimit,
 } from "../src/lib/community-rate-limit.ts";
+import { buildSupabaseHeaders, normalizeSupabaseValue } from "../src/lib/supabase-headers.ts";
 
 let passed = 0;
 function test(name, fn) {
@@ -174,6 +175,36 @@ test("in-memory consecutive post limit rejects the third attempt", () => {
     now + COMMUNITY_POST_RATE_LIMIT_WINDOW_MS + 1,
   );
   assert.equal(afterWindow.allowed, true);
+});
+
+test("Supabase env values are stripped of pasted whitespace", () => {
+  assert.equal(
+    normalizeSupabaseValue("  https://example.supabase.co\n"),
+    "https://example.supabase.co",
+  );
+  assert.equal(
+    normalizeSupabaseValue("sb_secret_test\r\n"),
+    "sb_secret_test",
+  );
+  assert.equal(
+    normalizeSupabaseValue("sb_secret_\npart"),
+    "sb_secret_part",
+  );
+});
+
+test("new Supabase secret keys are sent on apikey only", () => {
+  for (const key of ["sb_secret_test", "sb_publishable_test"]) {
+    const headers = buildSupabaseHeaders(key);
+    assert.equal(headers.apikey, key);
+    assert.equal("Authorization" in headers, false);
+  }
+});
+
+test("legacy JWT keys also send Authorization Bearer", () => {
+  const key = "eyJ-legacy-service-role";
+  const headers = buildSupabaseHeaders(key);
+  assert.equal(headers.apikey, key);
+  assert.equal(headers.Authorization, `Bearer ${key}`);
 });
 
 test("client bundle source does not reference server-only Supabase variables", () => {

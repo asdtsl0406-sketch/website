@@ -61,8 +61,33 @@ export async function POST(request: Request) {
       );
     }
 
+    if (result.reason === "network") {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Supabase에 연결하지 못했습니다. SUPABASE_URL과 Supabase 프로젝트가 Paused 상태가 아닌지 확인해주세요.",
+        },
+        { status: 502, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
     return NextResponse.json(
-      { ok: false, error: "글을 저장하지 못했습니다. 잠시 후 다시 시도해주세요." },
+      {
+        ok: false,
+        error: result.status === 401
+          ? "Supabase 인증에 실패했습니다. Vercel의 SUPABASE_SECRET_KEY가 서버용 secret 키인지 확인해주세요."
+          : result.status === 403
+            ? "Supabase 저장 권한이 없습니다. SUPABASE_SECRET_KEY가 secret/service_role 키인지 확인해주세요."
+            : result.status === 404
+              ? "SUPABASE_URL이 올바른지 확인해주세요. 주소 끝에 /rest/v1을 붙이면 안 됩니다."
+              : result.status === 400
+                ? "게시글 저장 형식이 데이터베이스와 맞지 않습니다. posts 테이블의 컬럼과 제약조건을 확인해주세요."
+                : "글을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.",
+        diagnostic: {
+          supabaseStatus: result.status ?? null,
+          supabaseCode: result.code ?? null,
+        },
+      },
       { status: 502, headers: { "Cache-Control": "no-store" } },
     );
   }

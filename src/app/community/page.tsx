@@ -13,7 +13,9 @@ export default async function CommunityPage() {
     ? null
     : result.reason === "not_configured"
       ? "서버에 SUPABASE_URL과 SUPABASE_SECRET_KEY가 설정되지 않아 실제 게시글을 불러오거나 저장할 수 없습니다. 아래 예시 글은 화면 확인용입니다."
-      : "게시글을 불러오지 못했습니다. 잠시 후 새로고침해주세요.";
+      : result.reason === "network"
+        ? "Supabase에 연결하지 못했습니다. SUPABASE_URL과 Supabase 프로젝트가 Paused 상태가 아닌지 확인해주세요. 아래 예시 글은 화면 확인용입니다."
+        : "게시글을 불러오지 못했습니다. 잠시 후 새로고침해주세요.";
 
   return (
     <>

@@ -105,12 +105,20 @@ export function CommunityFeed({
         body: JSON.stringify({ board: composeBoard, title, body }),
       });
       const data = (await response.json().catch(() => null)) as
-        | { error?: string; fieldErrors?: CommunityPostFieldErrors }
+        | {
+            error?: string;
+            fieldErrors?: CommunityPostFieldErrors;
+            diagnostic?: { supabaseStatus?: number | null; supabaseCode?: string | null };
+          }
         | null;
 
       if (!response.ok) {
         setFieldErrors(data?.fieldErrors ?? {});
-        setFormError(data?.error ?? "글을 등록하지 못했습니다.");
+        const diagnostic = data?.diagnostic;
+        const diagnosticSuffix = diagnostic?.supabaseStatus
+          ? ` (Supabase ${diagnostic.supabaseStatus}${diagnostic.supabaseCode ? ` / ${diagnostic.supabaseCode}` : ""})`
+          : "";
+        setFormError(`${data?.error ?? "글을 등록하지 못했습니다."}${diagnosticSuffix}`);
         return;
       }
 

@@ -52,7 +52,9 @@ export default async function CommunityPostPage({ params }: { params: Promise<{ 
             <div className="page-state error">
               {result.reason === "not_configured"
                 ? "서버에 SUPABASE_URL과 SUPABASE_SECRET_KEY가 설정되지 않아 게시글을 불러올 수 없습니다."
-                : "게시글을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."}
+                : result.reason === "network"
+                  ? "Supabase에 연결하지 못했습니다. SUPABASE_URL과 Supabase 프로젝트 상태를 확인해주세요."
+                  : "게시글을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."}
             </div>
           ) : !result.post ? (
             <div className="page-state">게시글을 찾을 수 없습니다.</div>
