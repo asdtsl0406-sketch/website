@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { validateCommunityPostInput } from "@/lib/community-posts";
 import { checkCommunityPostRateLimit } from "@/lib/community-rate-limit";
 import { createCommunityPost } from "@/lib/community-repository.server";
+import { SUPABASE_NETWORK_MESSAGES } from "@/lib/supabase-failure";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -62,10 +63,12 @@ export async function POST(request: Request) {
     }
 
     if (result.reason === "network") {
+      const networkReason = result.networkReason ?? "unknown";
       return NextResponse.json(
         {
           ok: false,
-          error: "Supabase에 연결하지 못했습니다. SUPABASE_URL과 Supabase 프로젝트가 Paused 상태가 아닌지 확인해주세요.",
+          error: SUPABASE_NETWORK_MESSAGES[networkReason],
+          diagnostic: { networkReason },
         },
         { status: 502, headers: { "Cache-Control": "no-store" } },
       );
