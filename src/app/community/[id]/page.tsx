@@ -1,10 +1,20 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { communityBoardCopy } from "@/lib/community-board-copy";
 import { communityBoards, communityExamples } from "@/lib/community-examples";
 import { formatCommunityPostDate, getCommunityBoardLabel } from "@/lib/community-posts";
-import { getPublicCommunityPost } from "@/lib/community-repository.server";
+import {
+  getCommunityPostVotes,
+  getPublicCommunityPost,
+  isCommunityPostOwner,
+} from "@/lib/community-repository.server";
+import { COMMUNITY_VISITOR_COOKIE, isCommunityVisitorId } from "@/lib/community-visitor";
+import { hashCommunityVisitorId } from "@/lib/community-visitor.server";
+import { CommunityDeleteButton } from "./community-delete-button";
+import { CommunityVoteBar } from "./community-vote-bar";
+import styles from "../community.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +47,27 @@ export default async function CommunityPostPage({ params }: { params: Promise<{ 
     );
   }
 
+  const visitorId = (await cookies()).get(COMMUNITY_VISITOR_COOKIE)?.value;
+  const voterHash = isCommunityVisitorId(visitorId) ? hashCommunityVisitorId(visitorId) : null;
+
   const result = await getPublicCommunityPost(id);
+
+  let votes = null;
+  let isOwner = false;
+
+  if (result.ok && result.post) {
+    const [voteResult, owner] = await Promise.all([
+      getCommunityPostVotes(result.post.id, voterHash),
+      voterHash
+        ? isCommunityPostOwner(result.post.id, voterHash)
+        : Promise.resolve(false),
+    ]);
+
+    // A failed aggregate read stays unavailable instead of looking like 0 votes.
+    votes = voteResult.ok ? voteResult.summary : null;
+    isOwner = owner;
+  }
+
   const createdLabel = result.ok && result.post
     ? formatCommunityPostDate(result.post.createdAt)
     : "";
@@ -60,8 +90,9 @@ export default async function CommunityPostPage({ params }: { params: Promise<{ 
             <div className="page-state">게시글을 찾을 수 없습니다.</div>
           ) : (
             <article className="post-detail">
-              <div className="post-detail-meta">
+              <div className={styles.detailTop}>
                 <span className="board-label">{getCommunityBoardLabel(result.post.board)}</span>
+                {isOwner && <CommunityDeleteButton postId={result.post.id} />}
               </div>
               <h1>{result.post.title}</h1>
               <div className="post-author-line">
@@ -69,6 +100,13 @@ export default async function CommunityPostPage({ params }: { params: Promise<{ 
                 {createdLabel && <span>{createdLabel}</span>}
               </div>
               <div className="post-body">{result.post.body}</div>
+              <CommunityVoteBar
+                postId={result.post.id}
+                initialUp={votes?.up ?? 0}
+                initialDown={votes?.down ?? 0}
+                initialVote={votes?.myVote ?? "none"}
+                available={votes !== null}
+              />
             </article>
           )}
         </div>

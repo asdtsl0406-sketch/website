@@ -21,6 +21,20 @@ import {
   SUPABASE_NETWORK_MESSAGES,
   classifySupabaseFetchFailure,
 } from "../src/lib/supabase-failure.ts";
+import {
+  aggregateCommunityVotes,
+  buildCommunityPostVotesSearchParams,
+  buildCommunityVoteSummarySearchParams,
+  parseCommunityVoteState,
+  summarizeCommunityVotes,
+} from "../src/lib/community-votes.ts";
+import {
+  COMMUNITY_VISITOR_COOKIE,
+  buildCommunityVisitorCookieOptions,
+  createCommunityVisitorId,
+  isCommunityVisitorId,
+} from "../src/lib/community-visitor.ts";
+import { isSameOriginRequest } from "../src/lib/community-origin.ts";
 
 let passed = 0;
 function test(name, fn) {
@@ -179,6 +193,89 @@ test("in-memory consecutive post limit rejects the third attempt", () => {
     now + COMMUNITY_POST_RATE_LIMIT_WINDOW_MS + 1,
   );
   assert.equal(afterWindow.allowed, true);
+});
+
+test("vote state accepts only up, down, or none", () => {
+  assert.equal(parseCommunityVoteState("up"), "up");
+  assert.equal(parseCommunityVoteState("down"), "down");
+  assert.equal(parseCommunityVoteState("none"), "none");
+
+  for (const value of ["UP", "", null, undefined, 1, -1, "cancel", {}, []]) {
+    assert.equal(parseCommunityVoteState(value), null);
+  }
+});
+
+test("vote totals are aggregated from stored rows only", () => {
+  const rows = [
+    { post_id: "p1", value: 1 },
+    { post_id: "p1", value: 1 },
+    { post_id: "p1", value: -1 },
+    { post_id: "p2", value: -1 },
+    { post_id: "p1", value: 5 },
+    { post_id: "", value: 1 },
+    { post_id: "p3", value: "1" },
+    null,
+  ];
+
+  assert.deepEqual(aggregateCommunityVotes(rows), {
+    p1: { up: 2, down: 1 },
+    p2: { up: 0, down: 1 },
+  });
+});
+
+test("my vote comes from the hashed browser identity", () => {
+  const rows = [
+    { voter_hash: "hash-a", value: 1 },
+    { voter_hash: "hash-b", value: -1 },
+  ];
+
+  assert.deepEqual(summarizeCommunityVotes(rows, "hash-a"), { up: 1, down: 1, myVote: "up" });
+  assert.deepEqual(summarizeCommunityVotes(rows, "hash-b"), { up: 1, down: 1, myVote: "down" });
+  assert.deepEqual(summarizeCommunityVotes(rows, null), { up: 1, down: 1, myVote: "none" });
+  assert.deepEqual(summarizeCommunityVotes([], "hash-a"), { up: 0, down: 0, myVote: "none" });
+});
+
+test("vote queries filter by post and sanitize list ids", () => {
+  assert.equal(buildCommunityPostVotesSearchParams("abc-1").get("post_id"), "eq.abc-1");
+
+  const list = buildCommunityVoteSummarySearchParams(["a1", "b-2", "bad,id", "x)y"]);
+  assert.equal(list.get("post_id"), "in.(a1,b-2)");
+  assert.equal(list.get("select"), "post_id,value");
+});
+
+test("anonymous visitor ids are random 64-character hex values", () => {
+  const first = createCommunityVisitorId();
+  const second = createCommunityVisitorId();
+
+  assert.match(first, /^[a-f0-9]{64}$/);
+  assert.match(second, /^[a-f0-9]{64}$/);
+  assert.notEqual(first, second);
+  assert.equal(isCommunityVisitorId(first), true);
+
+  for (const value of ["", "abc", first.toUpperCase(), `${first}0`, null, undefined]) {
+    assert.equal(isCommunityVisitorId(value), false);
+  }
+});
+
+test("visitor cookie is HttpOnly and Lax, Secure only over HTTPS", () => {
+  assert.equal(COMMUNITY_VISITOR_COOKIE, "community_visitor");
+
+  for (const secure of [true, false]) {
+    const options = buildCommunityVisitorCookieOptions(secure);
+    assert.equal(options.httpOnly, true);
+    assert.equal(options.sameSite, "lax");
+    assert.equal(options.secure, secure);
+    assert.equal(options.path, "/");
+    assert.ok(options.maxAge > 0);
+  }
+});
+
+test("state-changing requests must come from the same origin", () => {
+  assert.equal(isSameOriginRequest(null, "site.example"), true);
+  assert.equal(isSameOriginRequest("https://site.example", "site.example"), true);
+  assert.equal(isSameOriginRequest("https://site.example", null), false);
+  assert.equal(isSameOriginRequest("https://evil.example", "site.example"), false);
+  assert.equal(isSameOriginRequest("not a url", "site.example"), false);
 });
 
 test("Supabase env values are stripped of pasted whitespace", () => {

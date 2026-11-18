@@ -5,7 +5,20 @@ import {
   type CommunityPost,
   type CommunityPostInput,
 } from "./community-posts";
-import { buildSupabaseHeaders, normalizeSupabaseValue } from "./supabase-headers";
+import {
+  buildSupabaseHeaders,
+  normalizeSupabaseValue,
+} from "./supabase-headers";
+import {
+  aggregateCommunityVotes,
+  buildCommunityPostVotesSearchParams,
+  buildCommunityVoteSummarySearchParams,
+  communityVoteStateFromValue,
+  summarizeCommunityVotes,
+  type CommunityVoteCounts,
+  type CommunityVoteState,
+  type CommunityVoteSummary,
+} from "./community-votes";
 import {
   classifySupabaseFetchFailure,
   type SupabaseNetworkReason,
@@ -18,7 +31,7 @@ type SupabaseConfig = {
 
 type CommunityStoreFailure = {
   ok: false;
-  reason: "not_configured" | "unavailable" | "network";
+  reason: "not_configured" | "unavailable" | "network" | "not_found" | "forbidden";
   status?: number;
   code?: string;
   networkReason?: SupabaseNetworkReason;
@@ -34,6 +47,22 @@ export type CommunityPostDetailResult =
   | CommunityStoreFailure;
 
 export type CommunityPostCreateResult =
+  | { ok: true }
+  | CommunityStoreFailure;
+
+export type CommunityVoteResult =
+  | { ok: true; summary: CommunityVoteSummary }
+  | CommunityStoreFailure;
+
+export type CommunityVoteSummaryResult =
+  | { ok: true; summary: CommunityVoteSummary }
+  | CommunityStoreFailure;
+
+export type CommunityVoteListResult =
+  | { ok: true; votes: Record<string, CommunityVoteCounts> }
+  | CommunityStoreFailure;
+
+export type CommunityPostHideResult =
   | { ok: true }
   | CommunityStoreFailure;
 
@@ -187,39 +216,202 @@ export async function getPublicCommunityPost(id: string): Promise<CommunityPostD
   }
 }
 
-export async function createCommunityPost(input: CommunityPostInput): Promise<CommunityPostCreateResult> {
-  const config = getSupabaseConfig();
-  if (!config) return { ok: false, reason: "not_configured" };
-
+async function callSupabaseRpc(
+  operation: string,
+  config: SupabaseConfig,
+  rpc: string,
+  payload: Record<string, unknown>,
+): Promise<{ ok: true; data: unknown } | CommunityStoreFailure> {
   try {
-    const response = await fetch(`${config.url}/rest/v1/posts`, {
+    const response = await fetch(`${config.url}/rest/v1/rpc/${rpc}`, {
       method: "POST",
       headers: {
         ...buildSupabaseHeaders(config.secretKey),
         "Content-Type": "application/json",
-        Prefer: "return=representation",
       },
-      body: JSON.stringify({
-        board: input.board,
-        title: input.title,
-        body: input.body,
-        is_hidden: false,
-      }),
+      body: JSON.stringify(payload),
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
-      const details = await logSupabaseFailure("create post", response, config.secretKey);
+      const details = await logSupabaseFailure(operation, response, config.secretKey);
       return { ok: false, reason: "unavailable", status: response.status, code: details.code };
     }
 
-    // A 2xx response means Supabase stored the row. The response body is optional
-    // here because the list refreshes from the database after a successful save.
-    await readJsonRows(response);
-    return { ok: true };
+    let data: unknown = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    return { ok: true, data };
   } catch (error) {
-    const failure = logFetchFailure("create post", error, config);
+    const failure = logFetchFailure(operation, error, config);
     return { ok: false, reason: "network", networkReason: failure.reason, networkHost: failure.host };
   }
+}
+
+export async function createCommunityPost(
+  input: CommunityPostInput,
+  authorHash: string,
+): Promise<CommunityPostCreateResult> {
+  const config = getSupabaseConfig();
+  if (!config) return { ok: false, reason: "not_configured" };
+
+  // The SQL function stores the post and its owner hash in one transaction, so a
+  // post can never exist without an owner that is allowed to delete it later.
+  const result = await callSupabaseRpc("create post", config, "create_community_post", {
+    p_board: input.board,
+    p_title: input.title,
+    p_body: input.body,
+    p_author_hash: authorHash,
+  });
+
+  return result.ok ? { ok: true } : result;
+}
+
+export async function setCommunityVote(
+  postId: string,
+  voterHash: string,
+  state: CommunityVoteState,
+): Promise<CommunityVoteResult> {
+  const config = getSupabaseConfig();
+  if (!config) return { ok: false, reason: "not_configured" };
+
+  const result = await callSupabaseRpc("set vote", config, "set_community_vote", {
+    p_post_id: postId,
+    p_voter_hash: voterHash,
+    p_state: state,
+  });
+  if (!result.ok) return result;
+
+  if (!result.data || typeof result.data !== "object" || Array.isArray(result.data)) {
+    return { ok: false, reason: "unavailable" };
+  }
+
+  const data = result.data as Record<string, unknown>;
+  if (data.found !== true) return { ok: false, reason: "not_found" };
+
+  const up = Number(data.up);
+  const down = Number(data.down);
+  if (!Number.isFinite(up) || !Number.isFinite(down)) {
+    return { ok: false, reason: "unavailable" };
+  }
+
+  return {
+    ok: true,
+    summary: {
+      up: Math.max(0, Math.trunc(up)),
+      down: Math.max(0, Math.trunc(down)),
+      myVote: communityVoteStateFromValue(data.myVote),
+    },
+  };
+}
+
+export async function getCommunityPostVotes(
+  postId: string,
+  voterHash: string | null,
+): Promise<CommunityVoteSummaryResult> {
+  const config = getSupabaseConfig();
+  if (!config) return { ok: false, reason: "not_configured" };
+
+  try {
+    const params = buildCommunityPostVotesSearchParams(postId);
+    const response = await fetch(`${config.url}/rest/v1/post_votes?${params.toString()}`, {
+      headers: buildSupabaseHeaders(config.secretKey),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!response.ok) {
+      const details = await logSupabaseFailure("get votes", response, config.secretKey);
+      return { ok: false, reason: "unavailable", status: response.status, code: details.code };
+    }
+
+    return {
+      ok: true,
+      summary: summarizeCommunityVotes(await readJsonRows(response), voterHash),
+    };
+  } catch (error) {
+    const failure = logFetchFailure("get votes", error, config);
+    return { ok: false, reason: "network", networkReason: failure.reason, networkHost: failure.host };
+  }
+}
+
+export async function listCommunityVoteSummaries(
+  postIds: string[],
+): Promise<CommunityVoteListResult> {
+  if (postIds.length === 0) return { ok: true, votes: {} };
+
+  const config = getSupabaseConfig();
+  if (!config) return { ok: false, reason: "not_configured" };
+
+  try {
+    // One request for every post on the page instead of one request per post.
+    const params = buildCommunityVoteSummarySearchParams(postIds);
+    const response = await fetch(`${config.url}/rest/v1/post_votes?${params.toString()}`, {
+      headers: buildSupabaseHeaders(config.secretKey),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!response.ok) {
+      const details = await logSupabaseFailure("list votes", response, config.secretKey);
+      return { ok: false, reason: "unavailable", status: response.status, code: details.code };
+    }
+
+    return { ok: true, votes: aggregateCommunityVotes(await readJsonRows(response)) };
+  } catch (error) {
+    const failure = logFetchFailure("list votes", error, config);
+    return { ok: false, reason: "network", networkReason: failure.reason, networkHost: failure.host };
+  }
+}
+
+export async function isCommunityPostOwner(postId: string, authorHash: string): Promise<boolean> {
+  const config = getSupabaseConfig();
+  if (!config) return false;
+
+  const params = new URLSearchParams({
+    select: "post_id",
+    post_id: `eq.${postId}`,
+    author_hash: `eq.${authorHash}`,
+    limit: "1",
+  });
+
+  try {
+    const response = await fetch(`${config.url}/rest/v1/post_authors?${params.toString()}`, {
+      headers: buildSupabaseHeaders(config.secretKey),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!response.ok) {
+      await logSupabaseFailure("check post owner", response, config.secretKey);
+      return false;
+    }
+
+    return (await readJsonRows(response)).length > 0;
+  } catch (error) {
+    logFetchFailure("check post owner", error, config);
+    return false;
+  }
+}
+
+export async function hideOwnedCommunityPost(
+  postId: string,
+  authorHash: string,
+): Promise<CommunityPostHideResult> {
+  const config = getSupabaseConfig();
+  if (!config) return { ok: false, reason: "not_configured" };
+
+  // Ownership is enforced inside the UPDATE statement, not only by hiding the button.
+  const result = await callSupabaseRpc("delete post", config, "hide_community_post", {
+    p_post_id: postId,
+    p_author_hash: authorHash,
+  });
+  if (!result.ok) return result;
+
+  return result.data === true ? { ok: true } : { ok: false, reason: "forbidden" };
 }

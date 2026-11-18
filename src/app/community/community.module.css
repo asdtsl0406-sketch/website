@@ -204,6 +204,94 @@
 .exampleMark { color: #80683a; font-size: 9px; font-weight: 700; }
 .emptyState { margin: 0; padding: 24px 0; color: #59667b; border-top: 2px solid #101d3a; font-size: 12px; }
 
+.detailTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deleteArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deleteTrigger {
+  padding: 4px 8px;
+  color: #59667b;
+  border: 1px solid #dfe3e9;
+  background: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.deleteTrigger:hover { color: #7f493f; border-color: #d8bcb4; background: #fff8f6; }
+
+.deleteConfirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border: 1px solid #e3d3b5;
+  background: #fffaf0;
+}
+
+.deleteConfirm p { margin: 0; color: #6d4a2f; font-size: 9px; line-height: 1.5; }
+.deleteActions { display: flex; align-items: center; gap: 5px; }
+
+.deleteCancel,
+.deleteSubmit {
+  min-height: 26px;
+  padding: 4px 9px;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.deleteCancel { color: #59667b; border: 1px solid #d9dee6; background: #fff; }
+.deleteSubmit { color: #fff; border: 1px solid #7f493f; background: #7f493f; }
+.deleteCancel:disabled, .deleteSubmit:disabled { opacity: .55; cursor: wait; }
+.deleteError { margin: 0; color: #7f493f; font-size: 9px; line-height: 1.5; }
+
+.voteArea {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid #e4e8ee;
+  text-align: center;
+}
+
+.voteBar { display: flex; align-items: center; justify-content: center; gap: 14px; }
+
+.voteButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 13px;
+  color: #59667b;
+  border: 1px solid #dfe3e9;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.voteButton b { color: #101d3a; font-size: 11px; }
+.voteButton:hover:not(:disabled) { border-color: #c7a45b; background: #fbfaf7; }
+.voteButton:disabled { opacity: .55; cursor: wait; }
+.voteButtonActive { color: #fff; border-color: #c7a45b; background: #101d3a; }
+.voteButtonActive b { color: #e8d6a8; }
+.voteDivider { width: 1px; height: 18px; background: #e4e8ee; }
+.voteError { margin: 10px 0 0; color: #7f493f; font-size: 10px; line-height: 1.6; }
+
+.deleteTrigger:focus-visible,
+.deleteCancel:focus-visible,
+.deleteSubmit:focus-visible,
+.voteButton:focus-visible { outline: 2px solid #c7a45b; outline-offset: 2px; }
+
+
 @media (max-width: 760px) {
   .page { padding-top: 24px; padding-bottom: 48px; }
   .heading { padding-bottom: 14px; }
@@ -223,4 +311,8 @@
   .category { font-size: 8px; }
   .postContent b { font-size: 12px; }
   .postContent small { font-size: 9px; }
+  .detailTop { align-items: flex-start; }
+  .voteBar { gap: 10px; }
+  .voteButton { padding: 6px 10px; }
+  .deleteConfirm { align-items: flex-end; flex-direction: column; gap: 7px; }
 }
