@@ -17,6 +17,10 @@ import {
   checkCommunityPostRateLimit,
 } from "../src/lib/community-rate-limit.ts";
 import { buildSupabaseHeaders, normalizeSupabaseValue } from "../src/lib/supabase-headers.ts";
+import {
+  SUPABASE_NETWORK_MESSAGES,
+  classifySupabaseFetchFailure,
+} from "../src/lib/supabase-failure.ts";
 
 let passed = 0;
 function test(name, fn) {
@@ -205,6 +209,58 @@ test("legacy JWT keys also send Authorization Bearer", () => {
   const headers = buildSupabaseHeaders(key);
   assert.equal(headers.apikey, key);
   assert.equal(headers.Authorization, `Bearer ${key}`);
+});
+
+test("Supabase fetch failures are classified for safe diagnostics", () => {
+  const fetchError = (message, cause) =>
+    Object.assign(new TypeError(message), cause ? { cause } : {});
+
+  assert.equal(
+    classifySupabaseFetchFailure(
+      fetchError("fetch failed", Object.assign(new Error("getaddrinfo ENOTFOUND"), { code: "ENOTFOUND" })),
+    ),
+    "address",
+  );
+  assert.equal(
+    classifySupabaseFetchFailure(
+      fetchError("fetch failed", Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" })),
+    ),
+    "refused",
+  );
+  assert.equal(
+    classifySupabaseFetchFailure(
+      fetchError("fetch failed", Object.assign(new Error("connect ETIMEDOUT"), { code: "ETIMEDOUT" })),
+    ),
+    "timeout",
+  );
+  assert.equal(
+    classifySupabaseFetchFailure(Object.assign(new Error("timed out"), { name: "TimeoutError" })),
+    "timeout",
+  );
+  assert.equal(
+    classifySupabaseFetchFailure(
+      fetchError("Cannot convert argument to a ByteString because the character at index 5 has a value"),
+    ),
+    "header",
+  );
+  assert.equal(
+    classifySupabaseFetchFailure(
+      fetchError("fetch failed", Object.assign(new Error("certificate has expired"), { code: "CERT_HAS_EXPIRED" })),
+    ),
+    "tls",
+  );
+  assert.equal(
+    classifySupabaseFetchFailure(
+      fetchError("fetch failed", Object.assign(new Error("socket hang up"), { code: "ECONNRESET" })),
+    ),
+    "reset",
+  );
+  assert.equal(classifySupabaseFetchFailure(fetchError("fetch failed")), "unknown");
+  assert.equal(classifySupabaseFetchFailure("not an error"), "unknown");
+
+  for (const message of Object.values(SUPABASE_NETWORK_MESSAGES)) {
+    assert.ok(message.length > 0);
+  }
 });
 
 test("client bundle source does not reference server-only Supabase variables", () => {
