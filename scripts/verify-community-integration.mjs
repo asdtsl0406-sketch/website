@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const nextBin = path.join(root, "node_modules", "next", "dist", "bin", "next");
-const TEST_SECRET = "test-secret";
+const TEST_SECRET = "sb_secret_integration-test";
 const DEV_PORT = 39123;
 const baseUrl = `http://127.0.0.1:${DEV_PORT}`;
 
@@ -34,8 +34,11 @@ let createdCount = 0;
 const apiResponses = [];
 
 function checkAuthorization(request) {
-  return request.headers.apikey === TEST_SECRET
-    && request.headers.authorization === `Bearer ${TEST_SECRET}`;
+  if (request.headers.apikey !== TEST_SECRET) return false;
+
+  // New sb_ keys are opaque and must not be sent as a Bearer token.
+  if (TEST_SECRET.startsWith("sb_")) return !request.headers.authorization;
+  return request.headers.authorization === `Bearer ${TEST_SECRET}`;
 }
 
 const mockSupabase = http.createServer(async (request, response) => {

@@ -5,6 +5,7 @@ import {
   type CommunityPost,
   type CommunityPostInput,
 } from "./community-posts";
+import { buildSupabaseHeaders } from "./supabase-headers";
 
 type SupabaseConfig = {
   url: string;
@@ -14,6 +15,8 @@ type SupabaseConfig = {
 type CommunityStoreFailure = {
   ok: false;
   reason: "not_configured" | "unavailable";
+  status?: number;
+  code?: string;
 };
 
 export type CommunityPostListResult =
@@ -44,14 +47,6 @@ function getSupabaseConfig(): SupabaseConfig | null {
   return { url: url.replace(/\/+$/, ""), secretKey };
 }
 
-function getHeaders(config: SupabaseConfig): HeadersInit {
-  return {
-    apikey: config.secretKey,
-    Authorization: `Bearer ${config.secretKey}`,
-    Accept: "application/json",
-  };
-}
-
 async function readJsonRows(response: Response): Promise<unknown[]> {
   try {
     const data: unknown = await response.json();
@@ -68,7 +63,7 @@ type PostgrestErrorDetails = {
   hint?: string;
 };
 
-async function logSupabaseFailure(operation: string, response: Response): Promise<void> {
+async function logSupabaseFailure(operation: string, response: Response): Promise<PostgrestErrorDetails> {
   const details: PostgrestErrorDetails = {};
 
   try {
@@ -92,6 +87,8 @@ async function logSupabaseFailure(operation: string, response: Response): Promis
     details: details.details,
     hint: details.hint,
   });
+
+  return details;
 }
 
 function logFetchFailure(operation: string, error: unknown): void {
@@ -108,13 +105,13 @@ export async function listPublicCommunityPosts(): Promise<CommunityPostListResul
   try {
     const params = buildCommunityPostListSearchParams();
     const response = await fetch(`${config.url}/rest/v1/posts?${params.toString()}`, {
-      headers: getHeaders(config),
+      headers: buildSupabaseHeaders(config.secretKey),
       cache: "no-store",
     });
 
     if (!response.ok) {
-      await logSupabaseFailure("list posts", response);
-      return { ok: false, reason: "unavailable" };
+      const details = await logSupabaseFailure("list posts", response);
+      return { ok: false, reason: "unavailable", status: response.status, code: details.code };
     }
 
     return { ok: true, posts: filterVisibleCommunityPosts(await readJsonRows(response)) };
@@ -131,13 +128,13 @@ export async function getPublicCommunityPost(id: string): Promise<CommunityPostD
   try {
     const params = buildCommunityPostDetailSearchParams(id);
     const response = await fetch(`${config.url}/rest/v1/posts?${params.toString()}`, {
-      headers: getHeaders(config),
+      headers: buildSupabaseHeaders(config.secretKey),
       cache: "no-store",
     });
 
     if (!response.ok) {
-      await logSupabaseFailure("get post", response);
-      return { ok: false, reason: "unavailable" };
+      const details = await logSupabaseFailure("get post", response);
+      return { ok: false, reason: "unavailable", status: response.status, code: details.code };
     }
 
     const [post] = filterVisibleCommunityPosts(await readJsonRows(response));
@@ -156,7 +153,7 @@ export async function createCommunityPost(input: CommunityPostInput): Promise<Co
     const response = await fetch(`${config.url}/rest/v1/posts`, {
       method: "POST",
       headers: {
-        ...getHeaders(config),
+        ...buildSupabaseHeaders(config.secretKey),
         "Content-Type": "application/json",
         Prefer: "return=representation",
       },
@@ -170,8 +167,8 @@ export async function createCommunityPost(input: CommunityPostInput): Promise<Co
     });
 
     if (!response.ok) {
-      await logSupabaseFailure("create post", response);
-      return { ok: false, reason: "unavailable" };
+      const details = await logSupabaseFailure("create post", response);
+      return { ok: false, reason: "unavailable", status: response.status, code: details.code };
     }
 
     // A 2xx response means Supabase stored the row. The response body is optional
