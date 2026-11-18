@@ -1,7 +1,10 @@
 export function normalizeSupabaseValue(value: string | undefined): string | undefined {
-  // Values pasted from dashboards can contain line breaks or spaces.
-  // Supabase URLs and keys never contain whitespace.
-  return value?.replace(/[\s\u200B\uFEFF]/g, "");
+  // Values pasted from dashboards can contain line breaks, spaces, or invisible
+  // Unicode characters. Supabase URLs and keys never contain them.
+  return value?.replace(
+    /[\u0000-\u0020\u007F-\u00A0\u00AD\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g,
+    "",
+  );
 }
 
 export function buildSupabaseHeaders(secretKey: string): Record<string, string> {

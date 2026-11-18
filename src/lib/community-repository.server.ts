@@ -22,6 +22,7 @@ type CommunityStoreFailure = {
   status?: number;
   code?: string;
   networkReason?: SupabaseNetworkReason;
+  networkHost?: string;
 };
 
 export type CommunityPostListResult =
@@ -109,18 +110,19 @@ async function logSupabaseFailure(
 function logFetchFailure(
   operation: string,
   error: unknown,
-  secretKey: string,
-): SupabaseNetworkReason {
+  config: SupabaseConfig,
+): { reason: SupabaseNetworkReason; host: string } {
   const info: Record<string, unknown> = { operation };
+  const host = new URL(config.url).host;
 
   if (error instanceof Error) {
     info.error = error.name;
-    info.message = redactSecret(error.message, secretKey);
+    info.message = redactSecret(error.message, config.secretKey);
 
     const cause = (error as Error & { cause?: unknown }).cause;
     if (cause instanceof Error) {
       info.cause = cause.name;
-      info.causeMessage = redactSecret(cause.message, secretKey);
+      info.causeMessage = redactSecret(cause.message, config.secretKey);
       const code = (cause as Error & { code?: unknown }).code;
       if (typeof code === "string") info.causeCode = code;
     }
@@ -130,9 +132,10 @@ function logFetchFailure(
 
   const networkReason = classifySupabaseFetchFailure(error);
   info.networkReason = networkReason;
+  info.supabaseHost = host;
   console.error("[community] Supabase request failed", info);
 
-  return networkReason;
+  return { reason: networkReason, host };
 }
 
 export async function listPublicCommunityPosts(): Promise<CommunityPostListResult> {
@@ -154,8 +157,8 @@ export async function listPublicCommunityPosts(): Promise<CommunityPostListResul
 
     return { ok: true, posts: filterVisibleCommunityPosts(await readJsonRows(response)) };
   } catch (error) {
-    const networkReason = logFetchFailure("list posts", error, config.secretKey);
-    return { ok: false, reason: "network", networkReason };
+    const failure = logFetchFailure("list posts", error, config);
+    return { ok: false, reason: "network", networkReason: failure.reason, networkHost: failure.host };
   }
 }
 
@@ -179,8 +182,8 @@ export async function getPublicCommunityPost(id: string): Promise<CommunityPostD
     const [post] = filterVisibleCommunityPosts(await readJsonRows(response));
     return { ok: true, post: post ?? null };
   } catch (error) {
-    const networkReason = logFetchFailure("get post", error, config.secretKey);
-    return { ok: false, reason: "network", networkReason };
+    const failure = logFetchFailure("get post", error, config);
+    return { ok: false, reason: "network", networkReason: failure.reason, networkHost: failure.host };
   }
 }
 
@@ -216,7 +219,7 @@ export async function createCommunityPost(input: CommunityPostInput): Promise<Co
     await readJsonRows(response);
     return { ok: true };
   } catch (error) {
-    const networkReason = logFetchFailure("create post", error, config.secretKey);
-    return { ok: false, reason: "network", networkReason };
+    const failure = logFetchFailure("create post", error, config);
+    return { ok: false, reason: "network", networkReason: failure.reason, networkHost: failure.host };
   }
 }

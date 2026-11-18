@@ -194,6 +194,14 @@ test("Supabase env values are stripped of pasted whitespace", () => {
     normalizeSupabaseValue("sb_secret_\npart"),
     "sb_secret_part",
   );
+  assert.equal(
+    normalizeSupabaseValue("\uFEFFhttps://example.supabase.co\u200B"),
+    "https://example.supabase.co",
+  );
+  assert.equal(
+    normalizeSupabaseValue("https://exa\u00ADmple.supabase.co\u00A0"),
+    "https://example.supabase.co",
+  );
 });
 
 test("new Supabase secret keys are sent on apikey only", () => {
