@@ -61,6 +61,16 @@ export async function POST(request: Request) {
       );
     }
 
+    if (result.reason === "network") {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Supabase에 연결하지 못했습니다. SUPABASE_URL과 Supabase 프로젝트가 Paused 상태가 아닌지 확인해주세요.",
+        },
+        { status: 502, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
     return NextResponse.json(
       {
         ok: false,

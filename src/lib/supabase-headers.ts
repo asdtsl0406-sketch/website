@@ -1,3 +1,9 @@
+export function normalizeSupabaseValue(value: string | undefined): string | undefined {
+  // Values pasted from dashboards can contain line breaks or spaces.
+  // Supabase URLs and keys never contain whitespace.
+  return value?.replace(/[\s\u200B\uFEFF]/g, "");
+}
+
 export function buildSupabaseHeaders(secretKey: string): Record<string, string> {
   const headers: Record<string, string> = {
     apikey: secretKey,

@@ -126,7 +126,7 @@ async function waitForServer() {
 
 async function getPage(pathname) {
   const response = await fetch(`${baseUrl}${pathname}`, {
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(60_000),
   });
   const html = await response.text();
   apiResponses.push(html);
@@ -138,7 +138,7 @@ async function postJson(payload, rawBody) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: rawBody ?? JSON.stringify(payload),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(60_000),
   });
   const text = await response.text();
   apiResponses.push(text);

@@ -16,7 +16,7 @@ import {
   COMMUNITY_POST_RATE_LIMIT_WINDOW_MS,
   checkCommunityPostRateLimit,
 } from "../src/lib/community-rate-limit.ts";
-import { buildSupabaseHeaders } from "../src/lib/supabase-headers.ts";
+import { buildSupabaseHeaders, normalizeSupabaseValue } from "../src/lib/supabase-headers.ts";
 
 let passed = 0;
 function test(name, fn) {
@@ -175,6 +175,21 @@ test("in-memory consecutive post limit rejects the third attempt", () => {
     now + COMMUNITY_POST_RATE_LIMIT_WINDOW_MS + 1,
   );
   assert.equal(afterWindow.allowed, true);
+});
+
+test("Supabase env values are stripped of pasted whitespace", () => {
+  assert.equal(
+    normalizeSupabaseValue("  https://example.supabase.co\n"),
+    "https://example.supabase.co",
+  );
+  assert.equal(
+    normalizeSupabaseValue("sb_secret_test\r\n"),
+    "sb_secret_test",
+  );
+  assert.equal(
+    normalizeSupabaseValue("sb_secret_\npart"),
+    "sb_secret_part",
+  );
 });
 
 test("new Supabase secret keys are sent on apikey only", () => {
