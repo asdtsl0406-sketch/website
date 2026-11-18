@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { validateCommunityPostInput } from "@/lib/community-posts";
 import { checkCommunityPostRateLimit } from "@/lib/community-rate-limit";
 import { createCommunityPost } from "@/lib/community-repository.server";
 import { SUPABASE_NETWORK_MESSAGES } from "@/lib/supabase-failure";
+import { COMMUNITY_VISITOR_COOKIE, isCommunityVisitorId } from "@/lib/community-visitor";
+import { hashCommunityVisitorId } from "@/lib/community-visitor.server";
+import { isSameOriginRequest } from "@/lib/community-origin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const NO_STORE = { "Cache-Control": "no-store" } as const;
 
 function getClientKey(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -14,13 +20,30 @@ function getClientKey(request: Request): string {
 }
 
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (!isSameOriginRequest(origin, host)) {
+    return NextResponse.json(
+      { ok: false, error: "요청을 처리할 수 없습니다." },
+      { status: 403, headers: NO_STORE },
+    );
+  }
+
+  const visitorId = (await cookies()).get(COMMUNITY_VISITOR_COOKIE)?.value;
+  if (!isCommunityVisitorId(visitorId)) {
+    return NextResponse.json(
+      { ok: false, error: "브라우저 식별 정보를 확인할 수 없습니다. 새로고침 후 다시 시도해주세요." },
+      { status: 400, headers: NO_STORE },
+    );
+  }
+
   let payload: unknown;
   try {
     payload = await request.json();
   } catch {
     return NextResponse.json(
       { ok: false, error: "요청 형식이 올바르지 않습니다." },
-      { status: 400, headers: { "Cache-Control": "no-store" } },
+      { status: 400, headers: NO_STORE },
     );
   }
 
@@ -32,7 +55,7 @@ export async function POST(request: Request) {
         error: "입력 내용을 확인해주세요.",
         fieldErrors: validation.errors,
       },
-      { status: 400, headers: { "Cache-Control": "no-store" } },
+      { status: 400, headers: NO_STORE },
     );
   }
 
@@ -43,14 +66,17 @@ export async function POST(request: Request) {
       {
         status: 429,
         headers: {
-          "Cache-Control": "no-store",
+          ...NO_STORE,
           "Retry-After": String(rateLimit.retryAfterSeconds),
         },
       },
     );
   }
 
-  const result = await createCommunityPost(validation.value);
+  const result = await createCommunityPost(
+    validation.value,
+    hashCommunityVisitorId(visitorId),
+  );
   if (!result.ok) {
     if (result.reason === "not_configured") {
       return NextResponse.json(

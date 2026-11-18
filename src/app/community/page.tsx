@@ -1,6 +1,9 @@
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { listPublicCommunityPosts } from "@/lib/community-repository.server";
+import {
+  listCommunityVoteSummaries,
+  listPublicCommunityPosts,
+} from "@/lib/community-repository.server";
 import { CommunityFeed } from "./community-feed";
 import styles from "./community.module.css";
 
@@ -9,6 +12,11 @@ export const dynamic = "force-dynamic";
 export default async function CommunityPage() {
   const result = await listPublicCommunityPosts();
   const posts = result.ok ? result.posts : [];
+
+  // One aggregate request for every post on the page.
+  const voteResult = result.ok ? await listCommunityVoteSummaries(posts.map((post) => post.id)) : null;
+  const votes = voteResult?.ok ? voteResult.votes : null;
+
   const storeNotice = result.ok
     ? null
     : result.reason === "not_configured"
@@ -27,7 +35,7 @@ export default async function CommunityPage() {
             <p>경기부터 직관 후기까지, 마드리디스타의 이야기</p>
           </header>
 
-          <CommunityFeed posts={posts} storeNotice={storeNotice} />
+          <CommunityFeed posts={posts} votes={votes} storeNotice={storeNotice} />
         </div>
       </main>
       <SiteFooter />

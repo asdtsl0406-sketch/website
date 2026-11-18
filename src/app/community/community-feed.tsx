@@ -16,6 +16,7 @@ import {
   type CommunityPost,
   type CommunityPostFieldErrors,
 } from "@/lib/community-posts";
+import { formatCommunityVoteCount } from "@/lib/community-votes";
 import { communityBoardCopy } from "@/lib/community-board-copy";
 import { communityExamples } from "@/lib/community-examples";
 import styles from "./community.module.css";
@@ -43,9 +44,11 @@ function getRequestedBoard(value: string | null): CommunityBoardViewId | null {
 
 export function CommunityFeed({
   posts,
+  votes,
   storeNotice,
 }: {
   posts: CommunityPost[];
+  votes: Record<string, { up: number; down: number }> | null;
   storeNotice: string | null;
 }) {
   const router = useRouter();
@@ -259,7 +262,12 @@ export function CommunityFeed({
                   {post.isExample ? (
                     <><span className={styles.exampleMark}>예시</span> {post.summary}</>
                   ) : (
-                    <>익명 · {formatCommunityPostDate(post.createdAt)}</>
+                    <>
+                      익명 · {formatCommunityPostDate(post.createdAt)}
+                      {votes && (
+                        <> · 추천 {formatCommunityVoteCount(votes[post.id]?.up ?? 0)} · 비추천 {formatCommunityVoteCount(votes[post.id]?.down ?? 0)}</>
+                      )}
+                    </>
                   )}
                 </small>
               </span>
