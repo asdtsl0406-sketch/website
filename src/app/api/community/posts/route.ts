@@ -73,6 +73,10 @@ export async function POST(request: Request) {
               : result.status === 400
                 ? "게시글 저장 형식이 데이터베이스와 맞지 않습니다. posts 테이블의 컬럼과 제약조건을 확인해주세요."
                 : "글을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.",
+        diagnostic: {
+          supabaseStatus: result.status ?? null,
+          supabaseCode: result.code ?? null,
+        },
       },
       { status: 502, headers: { "Cache-Control": "no-store" } },
     );
