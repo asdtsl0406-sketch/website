@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { ScoutPanel } from "./scout-panel";
 import styles from "./squad.module.css";
 
 type Position = "골키퍼" | "수비수" | "미드필더" | "공격수";
@@ -143,6 +144,8 @@ export default function SquadPage() {
               ))}
             </div>
           )}
+
+          <ScoutPanel />
         </div>
       </main>
       <SiteFooter />
