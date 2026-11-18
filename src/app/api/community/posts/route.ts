@@ -68,7 +68,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           error: SUPABASE_NETWORK_MESSAGES[networkReason],
-          diagnostic: { networkReason },
+          diagnostic: { networkReason, supabaseHost: result.networkHost ?? null },
         },
         { status: 502, headers: { "Cache-Control": "no-store" } },
       );

@@ -112,6 +112,7 @@ export function CommunityFeed({
               supabaseStatus?: number | null;
               supabaseCode?: string | null;
               networkReason?: string | null;
+              supabaseHost?: string | null;
             };
           }
         | null;
@@ -122,7 +123,7 @@ export function CommunityFeed({
         const diagnosticSuffix = diagnostic?.supabaseStatus
           ? ` (Supabase ${diagnostic.supabaseStatus}${diagnostic.supabaseCode ? ` / ${diagnostic.supabaseCode}` : ""})`
           : diagnostic?.networkReason
-            ? ` (연결: ${diagnostic.networkReason})`
+            ? ` (연결: ${diagnostic.networkReason}${diagnostic.supabaseHost ? ` / ${diagnostic.supabaseHost}` : ""})`
             : "";
         setFormError(`${data?.error ?? "글을 등록하지 못했습니다."}${diagnosticSuffix}`);
         return;
