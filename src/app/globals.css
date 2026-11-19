@@ -23,6 +23,27 @@ button { color: inherit; }
 a { color: inherit; text-decoration: none; }
 .page-width { width: min(1180px, calc(100% - 56px)); margin: 0 auto; }
 
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  :root {
+    --siu-front: url("/images/ui/ronaldo-siu-cursor.png") 32 32;
+    --siu-back: url("/images/ui/ronaldo-siu-cursor-back.png") 32 32;
+    cursor: var(--siu-back), auto;
+  }
+
+  body, body * { cursor: var(--siu-back), auto !important; }
+  body :where(a[href], button, summary, select, input, textarea, label[for], [role="button"], [role="link"], [contenteditable="true"]),
+  body :where(a[href], button, summary, select, input, textarea, label[for], [role="button"], [role="link"], [contenteditable="true"]) * {
+    cursor: var(--siu-front), pointer !important;
+  }
+  body :where(input:not([type]), input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="number"], input[type="url"], input[type="tel"], textarea, [contenteditable="true"]) {
+    cursor: var(--siu-front), text !important;
+  }
+  body :where(:is(button, input, select, textarea):disabled, [aria-disabled="true"]),
+  body :where(:is(button, input, select, textarea):disabled, [aria-disabled="true"]) * {
+    cursor: var(--siu-back), not-allowed !important;
+  }
+}
+
 .announcement { height: 29px; display: flex; align-items: center; justify-content: center; color: #e9dfc8; background: var(--navy); font-size: 9px; letter-spacing: .1em; font-weight: 600; }
 .eyebrow span { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); display: inline-block; }
 .site-header { position: sticky; top: 0; z-index: 30; height: 72px; width: 100%; margin: 0; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.97); }
@@ -36,9 +57,6 @@ a { color: inherit; text-decoration: none; }
 .main-nav { display: flex; align-items: center; gap: 34px; height: 100%; margin-left: auto; }
 .main-nav a { height: 100%; display: flex; align-items: center; position: relative; color: #687286; font-size: 12px; font-weight: 600; transition: color .2s; }
 .main-nav a:hover, .main-nav a.active { color: var(--navy); }
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
-  .main-nav a:hover { cursor: url("/images/ui/ronaldo-siu-cursor.png") 32 32, pointer; }
-}
 .main-nav a.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--gold); }
 .menu-toggle { display: none; width: 40px; height: 40px; align-items: center; justify-content: center; color: var(--navy); border: 1px solid var(--line); background: #fff; cursor: pointer; }
 .menu-backdrop { display: none; }
