@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import {
-  availableScoutRoles, isScoutRoleOption, realMadridClubId, scoutLeagueOptions, scoutLeagues, scoutPositions, shortlist,
+  isScoutRoleOption, realMadridClubId, scoutLeagueOptions, scoutLeagues, scoutPositions, searchScoutCandidates,
   type ScoutClub, type ScoutLeague, type ScoutPosition, type ScoutResult,
 } from "@/lib/scout";
+import { lookupScoutRole } from "@/lib/scout-role-reference.server";
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
@@ -48,11 +49,10 @@ export async function GET(request: Request) {
   }
 
   const data: ScoutResult = {
-    players: shortlist(clubs, position, role),
+    ...searchScoutCandidates(clubs, position, role, lookupScoutRole),
     scannedClubs: clubs.length,
     targetClubs: teams.length,
     unavailableLeagues,
-    availableRoles: availableScoutRoles(clubs, position),
   };
   return NextResponse.json(data);
 }
