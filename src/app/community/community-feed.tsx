@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   COMMUNITY_BODY_MAX_LENGTH,
   COMMUNITY_TITLE_MAX_LENGTH,
@@ -23,7 +23,6 @@ import styles from "./community.module.css";
 
 type FeedPost = CommunityPost & {
   summary?: string;
-  isExample: boolean;
 };
 
 const examplePosts: FeedPost[] = communityExamples.map((post) => ({
@@ -33,7 +32,6 @@ const examplePosts: FeedPost[] = communityExamples.map((post) => ({
   body: communityBoardCopy[post.id]?.body ?? post.body,
   summary: communityBoardCopy[post.id]?.summary ?? post.summary,
   createdAt: "",
-  isExample: true,
 }));
 
 function getRequestedBoard(value: string | null): CommunityBoardViewId | null {
@@ -62,6 +60,8 @@ export function CommunityFeed({
   const [fieldErrors, setFieldErrors] = useState<CommunityPostFieldErrors>({});
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const titleInput = useRef<HTMLInputElement>(null);
+  const composeToggle = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const requested = getRequestedBoard(new URLSearchParams(window.location.search).get("board"));
@@ -70,11 +70,16 @@ export function CommunityFeed({
 
   const selectedBoard = communityPostBoards.find((item) => item.id === board) ?? communityPostBoards[0];
 
-  const visiblePosts = useMemo(() => {
+  useEffect(() => {
+    if (composeOpen) titleInput.current?.focus();
+  }, [composeOpen]);
+
+  const { visiblePosts, visibleExamples } = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
-    return [...posts.map((post) => ({ ...post, summary: undefined, isExample: false })), ...examplePosts]
+    const filter = <T extends CommunityPost>(items: T[]) => items
       .filter((post) => board === "all" || post.board === board)
       .filter((post) => !normalizedQuery || post.title.toLocaleLowerCase().includes(normalizedQuery));
+    return { visiblePosts: filter(posts), visibleExamples: filter(examplePosts) };
   }, [board, posts, query]);
 
   function openCompose() {
@@ -90,6 +95,7 @@ export function CommunityFeed({
     setComposeOpen(false);
     setFieldErrors({});
     setFormError("");
+    composeToggle.current?.focus();
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -136,6 +142,7 @@ export function CommunityFeed({
       setBody("");
       setComposeOpen(false);
       setSuccessMessage("익명 글이 등록되었습니다.");
+      composeToggle.current?.focus();
       router.refresh();
     } catch {
       setFormError("네트워크 오류로 글을 등록하지 못했습니다.");
@@ -172,8 +179,11 @@ export function CommunityFeed({
           </label>
           <button
             className={styles.writeButton}
+            ref={composeToggle}
             type="button"
             aria-expanded={composeOpen}
+            aria-controls="community-compose"
+            disabled={Boolean(storeNotice)}
             onClick={composeOpen ? closeCompose : openCompose}
           >
             {composeOpen ? "글쓰기 닫기" : "익명 글쓰기"}
@@ -185,7 +195,7 @@ export function CommunityFeed({
       {successMessage && <p className={styles.successMessage} role="status">{successMessage}</p>}
 
       {composeOpen && (
-        <form className={styles.compose} onSubmit={handleSubmit} noValidate>
+        <form id="community-compose" className={styles.compose} onSubmit={handleSubmit} noValidate>
           <div className={styles.composeHeading}>
             <h2>익명 글쓰기</h2>
             <p>작성자는 익명으로 표시됩니다. 로그인 없이 등록할 수 있어요.</p>
@@ -209,6 +219,7 @@ export function CommunityFeed({
           <label>
             제목
             <input
+              ref={titleInput}
               type="text"
               value={title}
               maxLength={COMMUNITY_TITLE_MAX_LENGTH}
@@ -248,32 +259,40 @@ export function CommunityFeed({
         </form>
       )}
 
-      <p className={styles.previewNote}>익명 게시판 · 예시 글은 &lsquo;예시&rsquo;로 표시됩니다</p>
+      <p className={styles.previewNote}>팬들의 글 · 최신순</p>
       {visiblePosts.length === 0 ? (
-        <p className={styles.emptyState} role="status">검색 조건에 맞는 글이 없어요</p>
+        !storeNotice && <p className={styles.emptyState} role="status">{query.trim() ? "검색 조건에 맞는 팬 글이 없어요." : "아직 이 게시판에 글이 없어요. 먼저 한마디 남겨볼래?"}</p>
       ) : (
         <div className={styles.postList}>
           {visiblePosts.map((post) => (
             <Link className={styles.postRow} href={`/community/${encodeURIComponent(post.id)}`} key={post.id}>
-              <span className={styles.category}>{getCommunityBoardLabel(post.board)}</span>
+              <span className={styles.category} data-board={post.board}>{getCommunityBoardLabel(post.board)}</span>
               <span className={styles.postContent}>
                 <b>{post.title}</b>
                 <small>
-                  {post.isExample ? (
-                    <><span className={styles.exampleMark}>예시</span> {post.summary}</>
-                  ) : (
-                    <>
-                      익명 · {formatCommunityPostDate(post.createdAt)}
-                      {votes && (
-                        <> · 추천 {formatCommunityVoteCount(votes[post.id]?.up ?? 0)} · 비추천 {formatCommunityVoteCount(votes[post.id]?.down ?? 0)}</>
-                      )}
-                    </>
-                  )}
+                  익명 · {formatCommunityPostDate(post.createdAt)}
+                  {votes && <> · 추천 {formatCommunityVoteCount(votes[post.id]?.up ?? 0)}</>}
                 </small>
               </span>
             </Link>
           ))}
         </div>
+      )}
+      {visibleExamples.length > 0 && (
+        <details className={styles.examples}>
+          <summary>둘러보기용 예시 글 ({visibleExamples.length})</summary>
+          <div className={styles.postList}>
+            {visibleExamples.map(post => (
+              <Link className={styles.postRow} href={`/community/${encodeURIComponent(post.id)}`} key={post.id}>
+                <span className={styles.category} data-board={post.board}>{getCommunityBoardLabel(post.board)}</span>
+                <span className={styles.postContent}>
+                  <b>{post.title}</b>
+                  <small>{post.summary}</small>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </details>
       )}
     </section>
   );

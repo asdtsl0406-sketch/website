@@ -1,0 +1,185 @@
+@font-face {
+  font-family: "Fan Jua";
+  src: url("/fonts/jua-headings.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+.homeMain, .matchMain {
+  --fan-ink: #271a45;
+  --fan-edge: #d7c8ec;
+  --fan-lilac: #f1e8ff;
+  --fan-lemon: #fff1af;
+  --fan-rose: #ffe1ed;
+  color: var(--fan-ink);
+  background: #fffcf5;
+}
+
+.hero {
+  padding-bottom: 28px;
+  color: var(--fan-ink);
+  background: radial-gradient(ellipse at 0% 0%, #fff3c8, transparent 48%),
+    radial-gradient(ellipse at 100% 0%, #ffe1ef, transparent 60%), #faf4ff;
+  border-bottom: 1px solid var(--fan-edge);
+  scroll-margin-top: 72px;
+}
+
+.heroInner {
+  display: grid;
+  gap: clamp(14px, 2vw, 24px);
+  padding-block: clamp(22px, 3.2vw, 40px) 20px;
+}
+
+.copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 18px; align-items: end; }
+.copy > :global(.eyebrow) { grid-column: 1 / -1; color: #66517f; }
+.copy > :global(.eyebrow) span { background: #af3975; }
+.copy h1 {
+  margin: 0;
+  font: 800 clamp(42px, 6vw, 88px)/.9 Manrope, sans-serif;
+  letter-spacing: -.075em;
+}
+.copy h1 em { color: #7842a8; font-style: normal; }
+.description { margin: 0; color: #5f4c75; font-size: 14px; line-height: 1.65; }
+
+.reactionSheet {
+  position: relative;
+  margin: 0;
+  padding: clamp(6px, 1vw, 12px);
+  border: 1px solid var(--fan-edge);
+  border-radius: 25px;
+  background: #fff;
+  box-shadow: 4px 6px 0 #e6d5f3;
+}
+.art { overflow: hidden; border-radius: 16px; background: var(--fan-lilac); }
+.art img { display: block; width: 100%; height: auto; }
+.playerLabels { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 0; padding: 0; }
+.playerLabels li { padding: 5px 2px; border-radius: 20px; background: var(--fan-lilac); font-size: 12px; font-weight: 800; text-align: center; }
+.playerLabels li:nth-child(2) { background: var(--fan-lemon); }
+.playerLabels li:nth-child(3) { background: var(--fan-rose); }
+.reactionSheet figcaption { margin: 6px 3px 0; color: #635574; font-size: 11px; text-align: right; }
+
+.actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.action {
+  display: flex; align-items: center; justify-content: space-between; gap: 7px;
+  min-height: 50px; padding: 9px 14px;
+  border: 1px solid #d9c4ec; border-radius: 13px;
+  color: var(--fan-ink); background: #eadbff; font-size: 13px; font-weight: 800;
+  box-shadow: 0 3px 0 #dcc8f0; transition: background .16s, box-shadow .16s;
+}
+.action:nth-child(3) { background: var(--fan-rose); border-color: #e9bed5; box-shadow: 0 3px 0 #f0c2d9; }
+.action.primary { background: var(--fan-lemon); border-color: #e9d587; box-shadow: 0 3px 0 #e9d587; }
+.action:hover, .action:nth-child(3):hover, .action.primary:hover { background: #fff; box-shadow: 0 4px 0 #b89bd6; }
+.action span { font-size: 15px; }
+
+.photoCursor { position: fixed; z-index: 60; top: 0; left: 0; width: 60px; height: 60px; display: none; pointer-events: none; }
+.photoCursor::before { content: ""; position: absolute; z-index: 1; width: 5px; height: 5px; border: 1px solid var(--fan-ink); border-radius: 50%; background: #fff; transform: translate(-2px, -2px); }
+.reaction {
+  position: absolute; inset: 3px 0 0 3px; overflow: hidden;
+  border: 2px solid #fff; border-radius: 13px; background: var(--fan-lilac);
+  box-shadow: 0 3px 10px rgb(39 26 69 / .45); rotate: -8deg;
+}
+.reactionStrip { position: absolute; left: 0; top: 0; width: 300%; height: 100%; }
+.reactionStrip img { object-fit: cover; }
+.photoCursor[data-active="mbappe"] .reaction { rotate: 8deg; }
+.photoCursor[data-active="mbappe"] .reactionStrip { left: -100%; }
+.photoCursor[data-active="bellingham"] .reaction { rotate: -5deg; }
+.photoCursor[data-active="bellingham"] .reactionStrip { left: -200%; }
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  .action[data-photo-cursor="active"], .action[data-photo-cursor="active"] * { cursor: none; }
+  .photoCursor[data-active] { display: block; }
+}
+@media (prefers-reduced-motion: reduce) { .action { transition: none; } }
+
+.fixtureWrap .fixtureCard { width: 100%; max-width: none; border-radius: 15px; border-color: var(--fan-edge); color: var(--fan-ink); background: #fff; box-shadow: none; }
+.fixtureCard :global(.live-label), .fixtureCard :global(.hero-team), .fixtureCard :global(.opponent-badge) { color: var(--fan-ink); }
+.fixtureCard :global(.opponent-badge) { border-color: var(--fan-edge); }
+.fixtureCard :global(.match-card-source), .fixtureCard :global(.match-card-bottom),
+.fixtureCard :global(.hero-fixture-empty), .fixtureCard :global(.versus) { color: #635574; }
+.fixtureCard :global(.match-card-divider) { border-top-color: var(--fan-edge); }
+.fixtureCard :global(.light-retry) { color: var(--fan-ink); border-color: var(--fan-edge); }
+.fixtureCard :global(.light-retry):hover { background: var(--fan-lilac); }
+
+.homeMain :global(.home-results-section) { background: #fffcf5; }
+.homeMain :global(.home-community-section) { background: #fbf1ff; }
+.homeMain :global(.home-post-row) { border-radius: 11px; padding-inline: 12px; background: #fff; }
+.homeMain :global(.home-post-row):hover { background: #fff7d9; }
+
+.homeMain :global(.home-results-section .home-section-heading h2),
+.homeMain :global(.best-eleven-heading h2),
+.matchMain :global(.inner-page-heading h1),
+.matchMain :global(.match-list-heading h2),
+.matchMain :global(.best-eleven-heading h2),
+.archive h2 {
+  color: var(--fan-ink);
+  font-family: "Fan Jua", Manrope, system-ui, sans-serif;
+  font-size: clamp(25px, 3.8vw, 42px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -.025em;
+}
+.homeMain :global(.best-eleven-heading h2 span),
+.matchMain :global(.best-eleven-heading h2 span) {
+  padding: 4px 8px; border-radius: 999px; color: #58337f; background: var(--fan-lilac);
+  font: 400 13px/1 "Fan Jua", Manrope, sans-serif; letter-spacing: .025em;
+}
+.homeMain :global(.best-eleven-player-name),
+.matchMain :global(.best-eleven-player-name) {
+  padding: 4px 5px; border-radius: 6px; color: #2b2040; background: #fff8e5;
+  font-size: clamp(10px, 1.25vw, 15px); font-weight: 800; text-shadow: none;
+}
+.homeMain :global(.best-eleven-player small),
+.matchMain :global(.best-eleven-player small) {
+  color: #fff; font: 400 clamp(9px, 1vw, 12px)/1.15 "Fan Jua", Manrope, system-ui, sans-serif;
+}
+.fixtureCard :global(.live-label), .fixtureCard :global(.match-card-bottom) { font-size: 12px; }
+.fixtureCard :global(.hero-team) { font-size: 12px; letter-spacing: 0; }
+.fixtureCard :global(.hero-fixture-empty) { font-size: 12px; }
+.homeMain :global(.result-feature) { border: 1px solid var(--fan-edge); border-radius: 18px; color: var(--fan-ink); background: #f1e8ff; }
+.homeMain :global(.result-feature-top span), .homeMain :global(.result-feature-bottom span),
+.homeMain :global(.result-feature-score span), .homeMain :global(.result-feature-score i),
+.homeMain :global(.result-feature-score .opponent-badge) { color: var(--fan-ink); }
+.homeMain :global(.result-feature-score .opponent-badge) { border-color: var(--fan-edge); }
+.homeMain :global(.result-feature-score strong),
+.homeMain :global(.result-row-teams strong),
+.matchMain :global(.match-row-date strong),
+.matchMain :global(.match-row-score),
+.matchMain :global(.match-row-time) {
+  color: #563580; font-family: "Fan Jua", Manrope, system-ui, sans-serif; font-weight: 400;
+  letter-spacing: .01em; font-variant-numeric: tabular-nums;
+}
+.matchMain :global(.match-list-row):hover { background: #f7efff; }
+
+.archive {
+  margin-bottom: 36px; padding: clamp(14px, 3vw, 28px);
+  border: 1px solid #ecc4d7; border-radius: 22px; background: #ffedf5;
+}
+.archive h2 { margin: 0 0 15px; }
+.albumGrid { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(12px, 2vw, 20px); margin: 0; padding: 0; }
+.albumCard { height: 100%; margin: 0; padding: 8px; border: 1px solid #ecc4d7; border-radius: 14px; background: #fff; box-shadow: 3px 4px 0 #efd0e1; }
+.albumImage { position: relative; display: block; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 8px; background: var(--fan-lilac); cursor: zoom-in; }
+.albumImage img { object-fit: cover; object-position: center 12%; }
+.albumGrid li:nth-child(2) .albumImage img { object-position: center; }
+.albumCard figcaption { padding: 10px 6px 5px; }
+.albumCard strong { display: block; color: var(--fan-ink); font-size: 15px; font-weight: 800; }
+.albumCard p { margin: 4px 0 7px; color: #5f4c75; font-size: 12px; }
+.albumCard small { color: #635574; font-size: 10px; }
+.albumCard small a { text-decoration: underline; text-underline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .copy { display: block; }
+  .copy h1 { margin: 8px 0; }
+  .description { font-size: 12px; }
+  .description br { display: none; }
+  .reactionSheet { border-radius: 18px; }
+  .art { border-radius: 12px; }
+  .actions { gap: 7px; }
+  .action { padding-inline: 8px; font-size: 12px; }
+}
+@media (max-width: 620px) {
+  .albumGrid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 380px) {
+  .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .primary { grid-column: 1 / -1; }
+}
