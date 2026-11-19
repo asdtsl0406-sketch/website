@@ -10,6 +10,35 @@ import { TeamMark } from "@/components/team-mark";
 import { competitionLabel, koreanDate, koreanKickoff, realMadridHomeAway, teamDisplayName } from "@/lib/football-data";
 import { communityBoards, communityExamples } from "@/lib/community-examples";
 import { useFixtures } from "@/lib/use-fixtures";
+import { HomeHeroActions } from "./home-hero-actions";
+import styles from "./home-hero.module.css";
+
+const archivePhotos = [
+  {
+    src: "/images/home/archive-ronaldo-2012.jpg",
+    alt: "흰 레알 마드리드 유니폼을 입은 크리스티아누 호날두의 정면 모습",
+    title: "레알 유니폼의 호날두",
+    detail: "2012년 여름 친선 경기",
+    source: "https://commons.wikimedia.org/wiki/File:Cristiano_Ronaldo,_2012_2.JPG",
+    credit: "goatling", license: "CC BY-SA 2.0", licenseUrl: "https://creativecommons.org/licenses/by-sa/2.0/",
+  },
+  {
+    src: "/images/home/archive-madrid-2018.jpg",
+    alt: "2018년 챔피언스리그 우승 축하 행사에서 웃고 있는 호날두와 마르셀루, 옆의 벤제마",
+    title: "우승 다음 날",
+    detail: "호날두·벤제마·마르셀루 · 2018",
+    source: "https://commons.wikimedia.org/wiki/File:La_alcaldesa_recibe_al_Real_Madrid,_campe%C3%B3n_una_vez_m%C3%A1s_de_la_Champions_League_17.jpg",
+    credit: "Diario de Madrid", license: "CC BY 4.0", licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+  },
+  {
+    src: "/images/home/archive-marcelo-2022.jpg",
+    alt: "2022년 레알 마드리드 우승 축하 행사에서 활짝 웃는 마르셀루",
+    title: "웃음 못 숨기는 마르셀루",
+    detail: "리그·챔피언스리그 우승 행사 · 2022",
+    source: "https://commons.wikimedia.org/wiki/File:Ofrenda_de_la_Liga_y_la_Champions-55-L.Mill%C3%A1n_(52109278836)_(cropped).jpg",
+    credit: "Fotografías Archimadrid.es", license: "CC BY 2.0", licenseUrl: "https://creativecommons.org/licenses/by/2.0/",
+  },
+];
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true as const };
@@ -25,10 +54,31 @@ function HomeContent() {
   return (
     <>
       <SiteHeader />
-      <main>
-        <section className="hero" id="home">
-          <div className="hero-match-wrap page-width">
-            <div className="hero-match-card">
+      <main className={styles.homeMain}>
+        <section className={styles.hero} id="home">
+          <div className={`page-width ${styles.heroInner}`}>
+            <div className={styles.copy}>
+              <div className="eyebrow"><span /> MADRIDISTA · KOREA</div>
+              <h1>Hala <em>Madrid.</em></h1>
+              <p className={styles.description}>경기 일정과 결과를 확인하고,<br />마드리디스타의 이야기를 둘러보세요.</p>
+            </div>
+            <figure className={styles.reactionSheet}>
+              <div className={styles.art}>
+                <Image src="/images/home/real-reaction-triptych.webp"
+                  alt="레알 마드리드 흰 유니폼을 입고 익살스러운 표정을 짓는 비니시우스와 음바페, 분홍 유니폼을 입고 놀란 표정의 벨링엄"
+                  width={2172} height={724} priority sizes="(max-width: 1236px) 96vw, 1180px" />
+              </div>
+              <ul className={styles.playerLabels} aria-label="사진 속 선수">
+                <li>비니시우스</li>
+                <li>음바페</li>
+                <li>벨링엄</li>
+              </ul>
+              <figcaption>AI로 만든 팬아트</figcaption>
+            </figure>
+            <HomeHeroActions />
+          </div>
+          <div className={`page-width ${styles.fixtureWrap}`}>
+            <div className={`hero-match-card ${styles.fixtureCard}`}>
               <div className="match-card-top">
                 <span className="live-label"><i /> {nextFixture ? competitionLabel(nextFixture.competitionCode, nextFixture.competitionName) : "다음 경기"}</span>
                 <span className="match-card-source">한국 시간 기준</span>
@@ -56,24 +106,6 @@ function HomeContent() {
               )}
             </div>
           </div>
-          <div className="hero-visual">
-            <Image src="/images/bernabeu-hero.jpg" alt="팬들로 가득 찬 산티아고 베르나베우 경기장 내부" fill priority sizes="100vw" className="hero-image" />
-            <div className="hero-shade" />
-            <div className="hero-inner page-width">
-              <div className="hero-copy">
-                <div className="eyebrow light"><span /> MADRIDISTA · KOREA</div>
-                <p className="hero-kicker">한국 팬을 위한 비공식 팬페이지</p>
-                <h1>Hala<br /><em>Madrid.</em></h1>
-                <p className="hero-description">경기 일정과 결과를 확인하고,<br />마드리디스타의 이야기를 둘러보세요.</p>
-                <div className="hero-actions">
-                  <Link className="hero-button" href="/matches">경기 일정 보기 <Icon name="arrow" size={17} /></Link>
-                  <Link className="hero-secondary" href="/community">팬 커뮤니티 둘러보기</Link>
-                </div>
-              </div>
-            </div>
-            <div className="image-credit">Photo: Zoser · cropped · <a href="https://commons.wikimedia.org/wiki/File:Estadio_Santiago_Bernab%C3%A9u_Madrid.jpg" target="_blank" rel="noreferrer">CC BY 4.0</a></div>
-          </div>
-
         </section>
 
         <section className="home-results-section section-pad">
@@ -122,6 +154,27 @@ function HomeContent() {
 
         <section className="home-xi-section section-pad page-width">
           <BestElevenPitch englishPositions />
+        </section>
+
+        <section className={`page-width ${styles.archive}`} aria-labelledby="home-archive-title">
+          <h2 id="home-archive-title">레알 사진첩</h2>
+          <ul className={styles.albumGrid}>
+            {archivePhotos.map(photo => (
+              <li key={photo.src}>
+                <figure className={styles.albumCard}>
+                  <a href={photo.src} target="_blank" rel="noreferrer" className={styles.albumImage}
+                    aria-label={`${photo.title} 사진 크게 보기 (새 탭)`}>
+                    <Image src={photo.src} alt={photo.alt} fill sizes="(max-width: 620px) 92vw, 370px" />
+                  </a>
+                  <figcaption>
+                    <strong>{photo.title}</strong>
+                    <p>{photo.detail}</p>
+                    <small><a href={photo.source}>{photo.credit}</a> · <a href={photo.licenseUrl}>{photo.license}</a></small>
+                  </figcaption>
+                </figure>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="home-community-section">

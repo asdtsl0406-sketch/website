@@ -29,7 +29,7 @@ export default async function CommunityPostPage({ params }: { params: Promise<{ 
     return (
       <>
         <SiteHeader />
-        <main className="inner-page community-detail-page">
+        <main className={`inner-page community-detail-page ${styles.page}`}>
           <div className="page-width">
             <Link className="back-link" href="/community">← 팬 커뮤니티</Link>
             <article className="post-detail">
@@ -75,7 +75,7 @@ export default async function CommunityPostPage({ params }: { params: Promise<{ 
   return (
     <>
       <SiteHeader />
-      <main className="inner-page community-detail-page">
+      <main className={`inner-page community-detail-page ${styles.page}`}>
         <div className="page-width">
           <Link className="back-link" href="/community">← 팬 커뮤니티</Link>
           {!result.ok ? (

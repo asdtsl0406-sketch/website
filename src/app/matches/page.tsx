@@ -7,6 +7,7 @@ import { BestElevenPitch } from "@/components/best-eleven-pitch";
 import { TeamMark } from "@/components/team-mark";
 import { competitionLabel, koreanDate, koreanKickoff, teamDisplayName, type FootballMatch } from "@/lib/football-data";
 import { useFixtures } from "@/lib/use-fixtures";
+import styles from "../home-hero.module.css";
 
 function MatchRow({ match, result = false }: { match: FootballMatch; result?: boolean }) {
   const { dateLabel, weekday } = koreanDate(match.utcDate);
@@ -30,7 +31,7 @@ export default function MatchesPage() {
   return (
     <>
       <SiteHeader />
-      <main className="inner-page matches-page">
+      <main className={`inner-page matches-page ${styles.matchMain}`}>
         <div className="page-width">
           <header className="inner-page-heading">
             <div className="eyebrow"><span /> 매치센터</div>

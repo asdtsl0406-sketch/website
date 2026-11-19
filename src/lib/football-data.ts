@@ -29,6 +29,8 @@ export type AppearedPlayer = {
 };
 
 export type MatchDetails = FootballMatch & {
+  homeTeam: FootballTeam & { formation?: string | null };
+  awayTeam: FootballTeam & { formation?: string | null };
   winner?: string | null;
   goals: Array<{
     minute: number | null;

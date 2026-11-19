@@ -5,6 +5,7 @@ import {
   listPublicCommunityPosts,
 } from "@/lib/community-repository.server";
 import { CommunityFeed } from "./community-feed";
+import { CommunityMatchCard } from "./community-match-card";
 import styles from "./community.module.css";
 
 export const dynamic = "force-dynamic";
@@ -17,13 +18,7 @@ export default async function CommunityPage() {
   const voteResult = result.ok ? await listCommunityVoteSummaries(posts.map((post) => post.id)) : null;
   const votes = voteResult?.ok ? voteResult.votes : null;
 
-  const storeNotice = result.ok
-    ? null
-    : result.reason === "not_configured"
-      ? "서버에 SUPABASE_URL과 SUPABASE_SECRET_KEY가 설정되지 않아 실제 게시글을 불러오거나 저장할 수 없습니다. 아래 예시 글은 화면 확인용입니다."
-      : result.reason === "network"
-        ? "Supabase에 연결하지 못했습니다. SUPABASE_URL과 Supabase 프로젝트가 Paused 상태가 아닌지 확인해주세요. 아래 예시 글은 화면 확인용입니다."
-        : "게시글을 불러오지 못했습니다. 잠시 후 새로고침해주세요.";
+  const storeNotice = result.ok ? null : "지금은 팬 글을 불러올 수 없어요. 잠시 후 새로고침해 주세요.";
 
   return (
     <>
@@ -35,6 +30,7 @@ export default async function CommunityPage() {
             <p>경기부터 직관 후기까지, 마드리디스타의 이야기</p>
           </header>
 
+          <CommunityMatchCard />
           <CommunityFeed posts={posts} votes={votes} storeNotice={storeNotice} />
         </div>
       </main>
