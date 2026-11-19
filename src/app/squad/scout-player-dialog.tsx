@@ -95,7 +95,8 @@ export function ScoutPlayerDialog({ player, position, onClose }: {
       </header>
       <section aria-label="선수 프로필">
         <dl className={styles.scoutFacts}>
-          <div><dt>포지션</dt><dd>{positionLabel}{!player.role && position !== "goalkeeper" && <small> · 세부 포지션 미확인</small>}</dd></div>
+          <div><dt>포지션</dt><dd>{positionLabel}{!player.role && position !== "goalkeeper" && <small> · 세부 포지션 미확인</small>}{player.positionSource === "reference" && <small> · 참고 자료</small>}</dd></div>
+          {player.dateOfBirth && <div><dt>생년월일</dt><dd><time dateTime={player.dateOfBirth}>{player.dateOfBirth}</time></dd></div>}
           {player.age !== null && <div><dt>나이</dt><dd>만 {player.age}세</dd></div>}
           {player.nationality && <div><dt>국적</dt><dd>{player.nationality}</dd></div>}
           {player.shirtNumber !== undefined && <div><dt>등번호</dt><dd>{player.shirtNumber}번</dd></div>}
@@ -117,6 +118,7 @@ export function ScoutPlayerDialog({ player, position, onClose }: {
           </p>
         )}
         <p className={styles.scoutSource}>데이터 출처 · football-data.org</p>
+        {player.positionSource === "reference" && <p className={styles.scoutNotice}>세부 포지션 · <a href="https://github.com/dcaribou/transfermarkt-datasets">2026년 7월 참고 자료</a></p>}
       </section>
       <section className={styles.scoutDiscussion} aria-labelledby="scout-discussion-title">
         <h3 id="scout-discussion-title">영입 토론</h3>

@@ -34,6 +34,7 @@ export const scoutLeagues = {
 
 export const scoutLeagueOptions = { ...scoutLeagues, all: "유럽 5대 리그 전체" } as const;
 export const realMadridClubId = 86;
+export const scoutResultLimit = 10;
 export type ScoutLeague = keyof typeof scoutLeagues;
 export type ScoutLeagueOption = keyof typeof scoutLeagueOptions;
 export type ScoutPosition = keyof typeof scoutPositions;
@@ -43,8 +44,10 @@ export type ScoutPlayer = {
   id: number;
   name: string;
   club: string;
+  dateOfBirth: string | null;
   age: number | null;
   role: ScoutRole | null;
+  positionSource?: "reference";
   league?: ScoutLeague;
   nationality?: string;
   shirtNumber?: number;
@@ -52,6 +55,7 @@ export type ScoutPlayer = {
 };
 export type ScoutResult = {
   players: ScoutPlayer[];
+  totalMatching: number;
   scannedClubs: number;
   targetClubs: number;
   unavailableLeagues: ScoutLeague[];
@@ -62,6 +66,7 @@ export type ScoutMatchStats = { appearances: number; starts: number; minutes: nu
 
 type SquadMember = {
   id?: number; name?: string | null; position?: string | null; dateOfBirth?: string | null;
+  firstName?: string | null; lastName?: string | null;
   nationality?: string | null; shirtNumber?: number | null; contract?: { until?: string | null } | null;
 };
 export type ScoutClub = { id: number; name: string; shortName?: string | null; squad: SquadMember[]; league?: ScoutLeague };
@@ -90,46 +95,51 @@ function getScoutRole(position: ScoutPosition, rawPosition: string) {
   return scoutRolesByPosition[position].find(option => scoutRoles[option].names.some(name => name === rawPosition));
 }
 
-export function availableScoutRoles(clubs: ScoutClub[], position: ScoutPosition): ScoutRole[] {
-  const roles = new Set<ScoutRole>();
-  for (const club of clubs) {
-    if (club.id === realMadridClubId) continue;
-    for (const player of club.squad) {
-      if (!player.id || !player.name?.trim()) continue;
-      const role = getScoutRole(position, normalizePosition(player.position));
-      if (role) roles.add(role);
-    }
-  }
-  return scoutRolesByPosition[position].filter(role => roles.has(role));
-}
-
 export function isScoutPlayerId(id: string) {
   return /^[1-9]\d{0,9}$/.test(id) && Number(id) <= 2147483647;
 }
 
-function ageAt(dateOfBirth: string | null | undefined, now: Date) {
+function verifiedBirthDate(dateOfBirth: string | null | undefined, now: Date) {
   if (!dateOfBirth || !/^\d{4}-\d{2}-\d{2}(?:$|T)/.test(dateOfBirth)) return null;
   const date = dateOfBirth.slice(0, 10);
   const birth = new Date(date + "T00:00:00Z");
   if (!Number.isFinite(birth.getTime()) || birth.toISOString().slice(0, 10) !== date || birth > now) return null;
-  return now.getUTCFullYear() - birth.getUTCFullYear()
+  return date;
+}
+
+function ageAt(date: string | null, now: Date) {
+  if (!date) return null;
+  return now.getUTCFullYear() - Number(date.slice(0, 4))
     - Number(now.toISOString().slice(5, 10) < date.slice(5, 10));
 }
 
-export function shortlist(clubs: ScoutClub[], position: ScoutPosition, role: ScoutRoleOption, now = new Date()): ScoutPlayer[] {
+type RoleLookup = (names: string[], dateOfBirth: string) => ScoutRole | null;
+
+export function searchScoutCandidates(
+  clubs: ScoutClub[], position: ScoutPosition, role: ScoutRoleOption, lookupRole: RoleLookup,
+  now = new Date(),
+): Pick<ScoutResult, "players" | "totalMatching" | "availableRoles"> {
   const players = new Map<number, ScoutPlayer>();
+  const roles = new Set<ScoutRole>();
 
   for (const club of clubs) {
     if (club.id === realMadridClubId) continue;
     for (const player of club.squad) {
       if (!player.id || !player.name?.trim() || players.has(player.id)) continue;
+      const name = player.name.trim();
       const rawPosition = normalizePosition(player.position);
-      const detail = getScoutRole(position, rawPosition);
-      if (!detail && toScoutPosition(rawPosition) !== position) continue;
+      const apiRole = getScoutRole(position, rawPosition);
+      if (!apiRole && toScoutPosition(rawPosition) !== position) continue;
+      const dateOfBirth = verifiedBirthDate(player.dateOfBirth, now);
+      const fullName = player.firstName && player.lastName ? `${player.firstName} ${player.lastName}` : "";
+      const reference = !apiRole && dateOfBirth ? lookupRole([name, fullName], dateOfBirth) : null;
+      const detail = apiRole ?? (reference && isScoutRoleOption(position, reference) ? reference : null);
+      if (detail) roles.add(detail);
       if (role !== "all" && detail !== role) continue;
       players.set(player.id, {
-        id: player.id, name: player.name.trim(), club: club.shortName || club.name,
-        age: ageAt(player.dateOfBirth, now), role: detail ?? null,
+        id: player.id, name, club: club.shortName || club.name, dateOfBirth,
+        age: ageAt(dateOfBirth, now), role: detail ?? null,
+        positionSource: detail && !apiRole ? "reference" : undefined,
         league: club.league,
         nationality: player.nationality?.trim() || undefined,
         shirtNumber: typeof player.shirtNumber === "number" && Number.isInteger(player.shirtNumber) && player.shirtNumber > 0 ? player.shirtNumber : undefined,
@@ -138,7 +148,11 @@ export function shortlist(clubs: ScoutClub[], position: ScoutPosition, role: Sco
     }
   }
 
-  return [...players.values()]
-    .sort((a, b) => a.name.localeCompare(b.name, "en") || a.id - b.id)
-    .slice(0, 3);
+  return {
+    players: [...players.values()]
+      .sort((a, b) => a.name.localeCompare(b.name, "en") || a.id - b.id)
+      .slice(0, scoutResultLimit),
+    totalMatching: players.size,
+    availableRoles: scoutRolesByPosition[position].filter(option => roles.has(option)),
+  };
 }

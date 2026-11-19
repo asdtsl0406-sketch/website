@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import {
-  scoutLeagueOptions, scoutLeagues, scoutPositions, scoutRoleLabel, scoutRolesByPosition,
+  scoutLeagueOptions, scoutLeagues, scoutPositions, scoutResultLimit, scoutRoleLabel, scoutRolesByPosition,
   type ScoutLeagueOption, type ScoutPlayer, type ScoutPosition, type ScoutRoleOption, type ScoutResult,
 } from "@/lib/scout";
 import { ScoutPlayerDialog } from "./scout-player-dialog";
@@ -16,8 +16,6 @@ export function ScoutPanel() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<{ player: ScoutPlayer; position: ScoutPosition } | null>(null);
-  const knownRoles = result?.league === league && result.position === position && !result.unavailableLeagues.length
-    && result.scannedClubs === result.targetClubs ? result.availableRoles : null;
 
   async function searchFor(selectedRole: ScoutRoleOption) {
     setPending(true);
@@ -25,11 +23,11 @@ export function ScoutPanel() {
     setError("");
     try {
       const response = await fetch("/api/scout?" + new URLSearchParams({ league, position, role: selectedRole }), { cache: "no-store" });
-      const data = await response.json() as ScoutResult & { error?: string };
-      if (!response.ok) throw new Error(data.error || "후보를 불러오지 못했어요.");
+      const data = await response.json().catch(() => null) as (ScoutResult & { error?: string }) | null;
+      if (!response.ok || !data || !Array.isArray(data.players)) {
+        throw new Error(data?.error || "후보를 불러오지 못했어요.");
+      }
       setResult({ ...data, league, position, role: selectedRole });
-      if (selectedRole !== "all" && !data.availableRoles.includes(selectedRole) && !data.unavailableLeagues.length
-        && data.scannedClubs === data.targetClubs) setRole("all");
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : "후보를 불러오지 못했어요.");
     } finally {
@@ -79,10 +77,10 @@ export function ScoutPanel() {
         </label>
         <label>
           세부 포지션
-          <select disabled={pending || position === "goalkeeper" || knownRoles?.length === 0} value={role} onChange={(event) => setRole(event.target.value as ScoutRoleOption)}>
+          <select disabled={pending || position === "goalkeeper"} value={role} onChange={(event) => setRole(event.target.value as ScoutRoleOption)}>
             <option value="all">{position === "goalkeeper" ? "세부 포지션 없음" : "전체"}</option>
             {scoutRolesByPosition[position].map((option) => (
-              <option key={option} value={option} disabled={knownRoles !== null && !knownRoles.includes(option)}>{scoutRoleLabel(option)}</option>
+              <option key={option} value={option}>{scoutRoleLabel(option)}</option>
             ))}
           </select>
         </label>
@@ -94,7 +92,8 @@ export function ScoutPanel() {
       {result && (
         <div className={styles.scoutResults} aria-live="polite">
           <p className={styles.scoutResultTitle}>
-            {scoutLeagueOptions[result.league]} · {result.role === "all" ? scoutPositions[result.position] : scoutRoleLabel(result.role)} <span>후보 {result.players.length}명</span>
+            {scoutLeagueOptions[result.league]} · {result.role === "all" ? scoutPositions[result.position] : scoutRoleLabel(result.role)}
+            <span>후보 {result.totalMatching}명{result.totalMatching > result.players.length ? ` · ${result.players.length}명 표시` : ""}</span>
           </p>
           {result.unavailableLeagues.length > 0 && (
             <p className={styles.scoutNotice}>{result.unavailableLeagues.map((code) => scoutLeagues[code]).join(", ")} 명단은 지금 볼 수 없어요.</p>
@@ -103,15 +102,27 @@ export function ScoutPanel() {
             <p className={styles.scoutNotice}>전체 {result.targetClubs}팀 중 명단을 확인한 {result.scannedClubs}팀에서 찾았어요.</p>
           )}
           {result.players.length ? (
-            <ul className={styles.scoutCards}>
+            <ul className={styles.scoutList}>
               {result.players.map((player) => (
                 <li key={player.id}>
-                  <p className={styles.scoutClub}>{player.league ? scoutLeagues[player.league] + " · " : ""}{player.club}</p>
                   <h3>{player.name}</h3>
-                  <p className={styles.scoutReason}>
-                    {player.role ? scoutRoleLabel(player.role) : scoutPositions[result.position]}
-                    {player.age !== null && ` · 만 ${player.age}세`}
-                  </p>
+                  <dl className={styles.scoutFields}>
+                    <div>
+                      <dt>소속 클럽</dt>
+                      <dd>{player.club}{player.league && <small>{scoutLeagues[player.league]}</small>}</dd>
+                    </div>
+                    <div>
+                      <dt>생년월일</dt>
+                      <dd>{player.dateOfBirth ? <time dateTime={player.dateOfBirth}>{player.dateOfBirth}</time> : "미확인"}</dd>
+                    </div>
+                    <div>
+                      <dt>포지션</dt>
+                      <dd>
+                        {player.role ? scoutRoleLabel(player.role) : scoutPositions[result.position]}
+                        {player.positionSource === "reference" && <small>참고 자료</small>}
+                      </dd>
+                    </div>
+                  </dl>
                   <button type="button" className={styles.scoutOpenPlayer}
                     aria-label={`${player.name} 프로필과 영입 토론 보기`}
                     onClick={() => setSelectedPlayer({ player, position: result.position })}>프로필 · 영입 토론</button>
@@ -120,7 +131,7 @@ export function ScoutPanel() {
             </ul>
           ) : result.role !== "all" && !result.availableRoles.includes(result.role) ? (
             <>
-              <p className={styles.scoutNotice}>{scoutRoleLabel(result.role)} 포지션이 확인된 선수가 없어요. {scoutPositions[result.position]} 전체에서 찾아볼까요?</p>
+              <p className={styles.scoutNotice}>이 리그에서 {scoutRoleLabel(result.role)}로 확인된 선수가 없어요. 5대 리그 전체나 {scoutPositions[result.position]} 전체로 넓혀보세요.</p>
               {result.league === league && result.position === position && (
                 <button type="button" className={styles.scoutOpenPlayer} onClick={searchBroadPosition}>{scoutPositions[result.position]} 전체 보기</button>
               )}
@@ -131,7 +142,7 @@ export function ScoutPanel() {
           )}
         </div>
       )}
-      <p className={styles.scoutSource}>포지션에 맞는 후보를 이름순으로 최대 3명 보여줘요. 실력순은 아니에요.</p>
+      <p className={styles.scoutSource}>조건에 맞는 후보를 이름순으로 최대 {scoutResultLimit}명 보여줘요. 소속은 football-data.org 명단을 기준으로, 일부 세부 포지션은 <a href="https://github.com/dcaribou/transfermarkt-datasets">2026년 7월 참고 자료</a>로 보완했어요.</p>
       {selectedPlayer && <ScoutPlayerDialog key={selectedPlayer.player.id} {...selectedPlayer} onClose={() => setSelectedPlayer(null)} />}
     </section>
   );
