@@ -71,24 +71,6 @@
 .action:hover, .action:nth-child(3):hover, .action.primary:hover { background: #fff; box-shadow: 0 4px 0 #b89bd6; }
 .action span { font-size: 15px; }
 
-.photoCursor { position: fixed; z-index: 60; top: 0; left: 0; width: 60px; height: 60px; display: none; pointer-events: none; }
-.photoCursor::before { content: ""; position: absolute; z-index: 1; width: 5px; height: 5px; border: 1px solid var(--fan-ink); border-radius: 50%; background: #fff; transform: translate(-2px, -2px); }
-.reaction {
-  position: absolute; inset: 3px 0 0 3px; overflow: hidden;
-  border: 2px solid #fff; border-radius: 13px; background: var(--fan-lilac);
-  box-shadow: 0 3px 10px rgb(39 26 69 / .45); rotate: -8deg;
-}
-.reactionStrip { position: absolute; left: 0; top: 0; width: 300%; height: 100%; }
-.reactionStrip img { object-fit: cover; }
-.photoCursor[data-active="mbappe"] .reaction { rotate: 8deg; }
-.photoCursor[data-active="mbappe"] .reactionStrip { left: -100%; }
-.photoCursor[data-active="bellingham"] .reaction { rotate: -5deg; }
-.photoCursor[data-active="bellingham"] .reactionStrip { left: -200%; }
-
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
-  .action[data-photo-cursor="active"], .action[data-photo-cursor="active"] * { cursor: none; }
-  .photoCursor[data-active] { display: block; }
-}
 @media (prefers-reduced-motion: reduce) { .action { transition: none; } }
 
 .fixtureWrap .fixtureCard { width: 100%; max-width: none; border-radius: 15px; border-color: var(--fan-edge); color: var(--fan-ink); background: #fff; box-shadow: none; }
